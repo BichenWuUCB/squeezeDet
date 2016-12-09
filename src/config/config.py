@@ -14,7 +14,7 @@ def base_model_config(dataset='PASCAL_VOC'):
   cfg = edict()
 
   # top level directory
-  cfg.ROOT_DIR = '/home/eecs/bichen/Proj/YOLO/squeezeDet'
+  cfg.ROOT_DIR = '/home/eecs/bichen/Proj/squeezeDet/squeezeDet'
 
   # Dataset used to train/val/test model. Now support PASCAL_VOC or KITTI
   cfg.DATASET = dataset.upper()
