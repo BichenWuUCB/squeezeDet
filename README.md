@@ -10,5 +10,12 @@ This repository contains a tensorflow implementation of SqueezeDet, a convolutio
         Year = {2016}
     }
     
-## Instructions 
-(TODO)
+## Installation:
+1. Prerequisites:
+    - Follow instructions to install Tensorflow: https://www.tensorflow.org.
+    - Install opencv: http://opencv.org
+2. Clone the SqueezeDet repository:
+  ```Shell
+  git clone https://github.com/BichenWuUCB/squeezeDet.git
+  ```
+
