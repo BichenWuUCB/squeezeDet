@@ -109,7 +109,7 @@ This repository contains a tensorflow implementation of SqueezeDet, a convolutio
   ./scripts/eval_val.sh
   ```
 
-  If you've changed the `--train_dir` in the training script, make sure to also change `--checkpoint_dir` in the evaluation script so they can find the checkpoints. Also, it's recommended to put `--train_dir` and  `--eval_dir` under the same `$LOG_DIR` such that tensorboard can load both training and evaluation logs. 
+  If you've changed the `--train_dir` in the training script, make sure to also change `--checkpoint_dir` in the evaluation script to the same as `--train_dir` so evaluation script knows where to find the checkpoint. Also, it's recommended to put `--train_dir` and  `--eval_dir` under the same `$LOG_DIR` such that tensorboard can load both training and evaluation logs. 
 
   The two scripts simultaneously evaluate the model on training and validation set. The training script keeps dumping checkpoint (model parameters) to the training directory once every 1000 steps (step size can be changed). Once a new checkpoint is saved, evaluation threads load the new checkpoint file and evaluate them on training and validation set. 
 
