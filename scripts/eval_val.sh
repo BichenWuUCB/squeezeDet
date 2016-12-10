@@ -8,7 +8,7 @@ python ./src/eval.py \
   --data_path=./data/KITTI \
   --image_set=val \
   --eval_dir=/tmp/bichen/logs/SqueezeDet/eval_val \
-  --checkpoint_dir=./data/model_checkpoints/squeezeDet/ \
+  --checkpoint_dir=/tmp/bichen/logs/SqueezeDet/train \
   --net=squeezeDet \
   --gpu=0
 
@@ -20,7 +20,7 @@ python ./src/eval.py \
 #   --data_path=./data/KITTI \
 #   --image_set=val \
 #   --eval_dir=/tmp/bichen/logs/SqueezeDetPlus/eval_val \
-#   --checkpoint_dir=./data/model_checkpoints/squeezeDetPlus/ \
+#   --checkpoint_dir=/tmp/bichen/logs/SqueezeDetPlus/train \
 #   --net=squeezeDet+ \
 #   --gpu=0
 
@@ -32,7 +32,7 @@ python ./src/eval.py \
 #   --data_path=./data/KITTI \
 #   --image_set=val \
 #   --eval_dir=/tmp/bichen/logs/vgg16/eval_val \
-#   --checkpoint_dir=./data/model_checkpoints/vgg16/ \
+#   --checkpoint_dir=/tmp/bichen/logs/vgg16/train \
 #   --net=squeezeDet+ \
 #   --gpu=0
 
@@ -44,6 +44,6 @@ python ./src/eval.py \
 #   --data_path=./data/KITTI \
 #   --image_set=val \
 #   --eval_dir=/tmp/bichen/logs/resnet50/eval_train \
-#   --checkpoint_dir=./data/model_checkpoints/resnet50/ \
+#   --checkpoint_dir=/tmp/bichen/logs/resnet50/train \
 #   --net=resnet50 \
 #   --gpu=0
