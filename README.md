@@ -28,12 +28,12 @@ This repository contains a tensorflow implementation of SqueezeDet, a convolutio
   Let's call the top level directory of SqueezeDet as `$SQDT_ROOT`. 
 - Download SqueezeDet model parameters from [here](https://www.dropbox.com/s/a6t3er8f03gdl4z/model_checkpoints.tgz?dl=0), untar it, and put it under `$SQDT_ROOT/data/` If you are using command line, type:
 
-```Shell
-cd $SQDT_ROOT/data/
-wget https://www.dropbox.com/s/a6t3er8f03gdl4z/model_checkpoints.tgz
-tar -xzvf model_checkpoints.tgz
-rm model_checkpoints.tgz
-```
+  ```Shell
+  cd $SQDT_ROOT/data/
+  wget https://www.dropbox.com/s/a6t3er8f03gdl4z/model_checkpoints.tgz
+  tar -xzvf model_checkpoints.tgz
+  rm model_checkpoints.tgz
+  ```
 
 ## Demo:
 - Now we can run some demos. To detect the sample image given in `$SQDT_ROOT/data`,
