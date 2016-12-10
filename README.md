@@ -118,7 +118,7 @@ This repository contains a tensorflow implementation of SqueezeDet, a convolutio
   ```Shell
   tensorboard --logdir=$LOG_DIR
   ```
-  From tensorboard, you should be able to see a lot of information including loss, Average Precisions, error analysis, example detections, model visualization, etc.
+  From tensorboard, you should be able to see a lot of information including loss, average precision, error analysis, example detections, model visualization, etc.
 
   ![alt text](https://github.com/BichenWuUCB/squeezeDet/blob/master/README/detection_analysis.png)
   ![alt text](https://github.com/BichenWuUCB/squeezeDet/blob/master/README/graph.png)
