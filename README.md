@@ -61,7 +61,7 @@ This repository contains a tensorflow implementation of SqueezeDet, a convolutio
   cd ./ImageSets
   ls ../training/image_2/ | grep ".png" | sed s/.png// > trainval.txt
   ```
-  `trainval.txt` contains indices to all the images in the training data. In our experiments, we randomly split half of indices in `trainval.txt` into `train.txt` to form a trainint set and rest of them into `val.txt` to form a validation set. 
+  `trainval.txt` contains indices to all the images in the training data. In our experiments, we randomly split half of indices in `trainval.txt` into `train.txt` to form a training set and rest of them into `val.txt` to form a validation set. 
 
   When above two steps are finished, the structure of `$SQDT_ROOT/data/KITTI/` should at least contain:
 
