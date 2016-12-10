@@ -42,7 +42,7 @@ rm model_checkpoints.tgz
 cd $SQDT_ROOT/data/
 python ./src/demo.py
 ```
-  If the installation is correct, the detector should generate this image: ![alt text](https://github.com/BichenWuUCB/squeezeDet/blob/master/data/out/out_sample.png)
+  If the installation is correct, the detector should generate this image: ![alt text](https://github.com/BichenWuUCB/squeezeDet/blob/master/README/out_sample.png)
 
 To detect other image(s), use the flag `--input_path=./data/*.png` to point to input image(s). Input image(s) will be scaled to the resolution of 1242x375 (KITTI image resolution), so it works best when original resolution is close to that.  
 
@@ -114,7 +114,10 @@ Finally, to monitor training and evaluation process, you can use tensorboard by
 ```Shell
 tensorboard --logdir=$LOG_DIR
 ```
-It's recommended to put `--train_dir` and  `--eval_dir` under `$LOG_DIR` such that tensorboard can load both training and evaluation logs. From tensorboard, you should be able to see a lot of information including loss, Average Precisions, error analysis, example detections, model visualization, etc. 
-![alt text](https://www.dropbox.com/s/vl918g1x0rc0uor/Screenshot%202016-12-09%2023.45.28.png)
+It's recommended to put `--train_dir` and  `--eval_dir` under `$LOG_DIR` such that tensorboard can load both training and evaluation logs. From tensorboard, you should be able to see a lot of information including loss, Average Precisions, error analysis, example detections, model visualization, etc.
+
+![alt text](https://github.com/BichenWuUCB/squeezeDet/blob/master/README/detection_analysis.png)
+![alt text](https://github.com/BichenWuUCB/squeezeDet/blob/master/README/graph.png)
+![alt text](https://github.com/BichenWuUCB/squeezeDet/blob/master/README/det_img.png)
 
 
