@@ -14,10 +14,26 @@ This repository contains a tensorflow implementation of SqueezeDet, a convolutio
 1. Prerequisites:
     - Follow instructions to install Tensorflow: https://www.tensorflow.org.
     - Install opencv: http://opencv.org
+    - Other packages that you might also need: easydict, joblib. You can use pip to install these packages:
+    
+    ```Shell
+    pip install easydict
+    pip install joblib
+    ```
 2. Clone the SqueezeDet repository:
 
   ```Shell
   git clone https://github.com/BichenWuUCB/squeezeDet.git
   ```
   Let's call the top level directory of SqueezeDet as `SQ_ROOT`. 
-3. Download SqueezeDet model parameters from [here](https://www.dropbox.com/s/a6t3er8f03gdl4z/model_checkpoints.tgz?dl=0), untar it, and put it under `SQ_ROOT/data/`
+3. Download SqueezeDet model parameters from [here](https://www.dropbox.com/s/a6t3er8f03gdl4z/model_checkpoints.tgz?dl=0), untar it, and put it under `SQ_ROOT/data/` If you are using command line, type:
+
+```Shell
+cd $SQ_ROOT/data/
+wget https://www.dropbox.com/s/a6t3er8f03gdl4z/model_checkpoints.tgz
+tar -xzvf model_checkpoints.tgz
+rm model_checkpoints.tgz
+```
+
+
+
