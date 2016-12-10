@@ -109,7 +109,7 @@ If you've changed the `--train_dir` in the training script, make sure to also ch
 
 The two scripts simultaneously evaluate the model on training and validation set. The training script keeps dumping checkpoint (model parameters) to the training directory. Once a new checkpoint is saved, evaluation threads load the new checkpoint file and evaluate them on training and validation set. This way, you can monitor real-time training status. 
 
-Finally, to monitor training and evaluation process, you can use tensorboard by
+- Finally, to monitor training and evaluation process, you can use tensorboard by
 
 ```Shell
 tensorboard --logdir=$LOG_DIR
