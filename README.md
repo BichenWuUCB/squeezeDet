@@ -26,6 +26,8 @@ This repository contains a tensorflow implementation of SqueezeDet, a convolutio
   git clone https://github.com/BichenWuUCB/squeezeDet.git
   ```
   Let's call the top level directory of SqueezeDet as `$SQDT_ROOT`. 
+
+## Demo:
 - Download SqueezeDet model parameters from [here](https://www.dropbox.com/s/a6t3er8f03gdl4z/model_checkpoints.tgz?dl=0), untar it, and put it under `$SQDT_ROOT/data/` If you are using command line, type:
 
   ```Shell
@@ -35,13 +37,13 @@ This repository contains a tensorflow implementation of SqueezeDet, a convolutio
   rm model_checkpoints.tgz
   ```
 
-## Demo:
-- Now we can run some demos. To detect the sample image given in `$SQDT_ROOT/data`,
 
-```Shell
-cd $SQDT_ROOT/data/
-python ./src/demo.py
-```
+- Now we can run the demo. To detect the sample image `$SQDT_ROOT/data/sample.png`,
+
+  ```Shell
+  cd $SQDT_ROOT/data/
+  python ./src/demo.py
+  ```
   If the installation is correct, the detector should generate this image: ![alt text](https://github.com/BichenWuUCB/squeezeDet/blob/master/README/out_sample.png)
 
   To detect other image(s), use the flag `--input_path=./data/*.png` to point to input image(s). Input image(s) will be scaled to the resolution of 1242x375 (KITTI image resolution), so it works best when original resolution is close to that.  
