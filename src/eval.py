@@ -34,7 +34,7 @@ tf.app.flags.DEFINE_string('year', '2007',
                             """Only used for VOC data""")
 tf.app.flags.DEFINE_string('eval_dir', '/tmp/bichen/logs/squeezeDet/eval',
                             """Directory where to write event logs """)
-tf.app.flags.DEFINE_string('checkpoint_dir', '/tmp/bichen/logs/squeezeDet/train',
+tf.app.flags.DEFINE_string('checkpoint_path', '/tmp/bichen/logs/squeezeDet/train',
                             """Path to the training checkpoint.""")
 tf.app.flags.DEFINE_integer('eval_interval_secs', 60 * 1,
                              """How often to check if new cpt is saved.""")
@@ -182,27 +182,32 @@ def evaluate():
     
     ckpts = set() 
     while True:
-      ckpt = tf.train.get_checkpoint_state(FLAGS.checkpoint_dir)
-      if ckpt and ckpt.model_checkpoint_path:
-        if ckpt.model_checkpoint_path in ckpts:
-          # Do not evaluate on the same checkpoint
-          print ('Wait {:d}s for new checkpoints to be saved ... '
-                    .format(FLAGS.eval_interval_secs))
-          time.sleep(FLAGS.eval_interval_secs)
-        else:
-          ckpts.add(ckpt.model_checkpoint_path)
-          print ('Evaluating {}...'.format(ckpt.model_checkpoint_path))
-          eval_once(saver, ckpt.model_checkpoint_path, 
-                    summary_writer, imdb, model)
-      else:
-        print('No checkpoint file found')
-        if not FLAGS.run_once:
-          print ('Wait {:d}s for new checkpoints to be saved ... '
-                    .format(FLAGS.eval_interval_secs))
-          time.sleep(FLAGS.eval_interval_secs)
-
       if FLAGS.run_once:
+        # When run_once is true, checkpoint_path should point to the exact
+        # checkpoint file.
+        eval_once(saver, FLAGS.checkpoint_path, summary_writer, imdb, model)
         return
+      else:
+        # When run_once is false, checkpoint_path should point to the directory
+        # that stores checkpoint files.
+        ckpt = tf.train.get_checkpoint_state(FLAGS.checkpoint_path)
+        if ckpt and ckpt.model_checkpoint_path:
+          if ckpt.model_checkpoint_path in ckpts:
+            # Do not evaluate on the same checkpoint
+            print ('Wait {:d}s for new checkpoints to be saved ... '
+                      .format(FLAGS.eval_interval_secs))
+            time.sleep(FLAGS.eval_interval_secs)
+          else:
+            ckpts.add(ckpt.model_checkpoint_path)
+            print ('Evaluating {}...'.format(ckpt.model_checkpoint_path))
+            eval_once(saver, ckpt.model_checkpoint_path, 
+                      summary_writer, imdb, model)
+        else:
+          print('No checkpoint file found')
+          if not FLAGS.run_once:
+            print ('Wait {:d}s for new checkpoints to be saved ... '
+                      .format(FLAGS.eval_interval_secs))
+            time.sleep(FLAGS.eval_interval_secs)
 
 
 def main(argv=None):  # pylint: disable=unused-argument

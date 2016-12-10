@@ -2,8 +2,8 @@
 
 """SqueezeDet Demo. 
 
-In image detection mode, for a given image, detect object and draw bounding
-boxes around it. In video detection mode, perform real-time detection on the
+In image detection mode, for a given image, detect objects and draw bounding
+boxes around them. In video detection mode, perform real-time detection on the
 video stream.
 """
 
@@ -29,7 +29,8 @@ FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string(
     'mode', 'image', """'image' or 'video'.""")
 tf.app.flags.DEFINE_string(
-    'checkpoint_dir', './data/model_checkpoints/squeezeDet/', """Path to the training checkpoint.""")
+    'checkpoint', './data/model_checkpoints/squeezeDet/model.ckpt-87000',
+    """Path to the model parameter file.""")
 tf.app.flags.DEFINE_string(
     'input_path', './data/sample.png',
     """Input image or video to be detected. Can process glob input such as """
@@ -60,12 +61,9 @@ def video_demo():
     model = SqueezeDet(mc, FLAGS.gpu)
 
     saver = tf.train.Saver(model.model_params)
-    ckpt = tf.train.get_checkpoint_state(FLAGS.checkpoint_dir)
-    assert ckpt and ckpt.model_checkpoint_path, 'Checkpoint is not found.'
-    ckpt_path = ckpt.model_checkpoint_path
 
     with tf.Session(config=tf.ConfigProto(allow_soft_placement=True)) as sess:
-      saver.restore(sess, ckpt_path)
+      saver.restore(sess, FLAGS.checkpoint)
 
       times = {}
       count = 0
@@ -154,12 +152,9 @@ def image_demo():
     model = SqueezeDet(mc, FLAGS.gpu)
 
     saver = tf.train.Saver(model.model_params)
-    ckpt = tf.train.get_checkpoint_state(FLAGS.checkpoint_dir)
-    assert ckpt and ckpt.model_checkpoint_path, 'Checkpoint is not found.'
-    ckpt_path = ckpt.model_checkpoint_path
 
     with tf.Session(config=tf.ConfigProto(allow_soft_placement=True)) as sess:
-      saver.restore(sess, ckpt_path)
+      saver.restore(sess, FLAGS.checkpoint)
 
       for f in glob.iglob(FLAGS.input_path):
         im = cv2.imread(f)
