@@ -11,13 +11,40 @@ This repository contains a tensorflow implementation of SqueezeDet, a convolutio
     }
     
 ## Installation:
-1. Prerequisites:
+- Prerequisites:
     - Follow instructions to install Tensorflow: https://www.tensorflow.org.
     - Install opencv: http://opencv.org
-2. Clone the SqueezeDet repository:
+    - Other packages that you might also need: easydict, joblib. You can use pip to install these packages:
+    
+    ```Shell
+    pip install easydict
+    pip install joblib
+    ```
+- Clone the SqueezeDet repository:
 
   ```Shell
   git clone https://github.com/BichenWuUCB/squeezeDet.git
   ```
   Let's call the top level directory of SqueezeDet as `SQ_ROOT`. 
-3. Download SqueezeDet model parameters from [here](https://www.dropbox.com/s/a6t3er8f03gdl4z/model_checkpoints.tgz?dl=0), untar it, and put it under `SQ_ROOT/data/`
+- Download SqueezeDet model parameters from [here](https://www.dropbox.com/s/a6t3er8f03gdl4z/model_checkpoints.tgz?dl=0), untar it, and put it under `SQ_ROOT/data/` If you are using command line, type:
+
+```Shell
+cd $SQ_ROOT/data/
+wget https://www.dropbox.com/s/a6t3er8f03gdl4z/model_checkpoints.tgz
+tar -xzvf model_checkpoints.tgz
+rm model_checkpoints.tgz
+```
+
+- Now we can run some demos. To detect the sample image given in `SQ_ROOT/data`,
+
+```Shell
+cd $SQ_ROOT/data/
+python ./src/demo.py
+```
+If the installation is correct, the detector should generate this image:
+
+To detect multiple images, use the flag `--input_path=./data/*.png` to specify images. Input images will be scaled to the resolution of 1242x375 (KITTI image resolution), so it works best when input images' original resolution is close to that.  
+
+
+
+
