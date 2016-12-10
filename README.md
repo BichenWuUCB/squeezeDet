@@ -86,7 +86,8 @@ tar -xzvf SqueezeNet.tgz
 wget https://www.dropbox.com/s/p65lktictdq011t/ResNet.tgz
 tar -xzvf ResNet.tgz
 # VGG16
-
+wget https://www.dropbox.com/s/zxd72nj012lzrlf/VGG16.tgz
+tar -xzvf VGG16.tgz
 ```
 
 - Now we can start training. Training script can be found in `$SQDT_ROOT/scripts/train.sh`, which contains commands to train 4 models: SqueezeDet, SqueezeDet+, VGG16+ConvDet, ResNet50+ConvDet. Un-comment the model you want to train, and then, type:
