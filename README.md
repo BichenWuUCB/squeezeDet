@@ -97,7 +97,7 @@ python ./src/demo.py
   ./scripts/train.sh
   ```
 
-  Training logs are saved to the directory specified by `--train_dir`.  You may want to change it before start training. 
+  Training logs are saved to the directory specified by `--train_dir`. 
 
 - At the same time, you can launch evaluation by 
 
@@ -107,19 +107,17 @@ python ./src/demo.py
   ./scripts/eval_val.sh
   ```
 
-  If you've changed the `--train_dir` in the training script, make sure to also change `--checkpoint_dir` in the evaluation script so they can find the checkpoints.
+  If you've changed the `--train_dir` in the training script, make sure to also change `--checkpoint_dir` in the evaluation script so they can find the checkpoints. Also, it's recommended to put `--train_dir` and  `--eval_dir` under the same `$LOG_DIR` such that tensorboard can load both training and evaluation logs. 
 
-  The two scripts simultaneously evaluate the model on training and validation set. The training script keeps dumping checkpoint (model parameters) to the training directory. Once a new checkpoint is saved, evaluation threads load the new checkpoint file and evaluate them on training and validation set. This way, you can monitor real-time training status. 
+  The two scripts simultaneously evaluate the model on training and validation set. The training script keeps dumping checkpoint (model parameters) to the training directory once every 1000 steps (step size can be changed). Once a new checkpoint is saved, evaluation threads load the new checkpoint file and evaluate them on training and validation set. 
 
 - Finally, to monitor training and evaluation process, you can use tensorboard by
 
   ```Shell
   tensorboard --logdir=$LOG_DIR
   ```
-  It's recommended to put `--train_dir` and  `--eval_dir` under `$LOG_DIR` such that tensorboard can load both training and evaluation logs. From tensorboard, you should be able to see a lot of information including loss, Average Precisions, error analysis, example detections, model visualization, etc.
+  From tensorboard, you should be able to see a lot of information including loss, Average Precisions, error analysis, example detections, model visualization, etc.
 
   ![alt text](https://github.com/BichenWuUCB/squeezeDet/blob/master/README/detection_analysis.png)
   ![alt text](https://github.com/BichenWuUCB/squeezeDet/blob/master/README/graph.png)
   ![alt text](https://github.com/BichenWuUCB/squeezeDet/blob/master/README/det_img.png)
-
-
