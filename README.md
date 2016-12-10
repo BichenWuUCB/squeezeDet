@@ -25,26 +25,96 @@ This repository contains a tensorflow implementation of SqueezeDet, a convolutio
   ```Shell
   git clone https://github.com/BichenWuUCB/squeezeDet.git
   ```
-  Let's call the top level directory of SqueezeDet as `SQ_ROOT`. 
-- Download SqueezeDet model parameters from [here](https://www.dropbox.com/s/a6t3er8f03gdl4z/model_checkpoints.tgz?dl=0), untar it, and put it under `SQ_ROOT/data/` If you are using command line, type:
+  Let's call the top level directory of SqueezeDet as `$SQDT_ROOT`. 
+- Download SqueezeDet model parameters from [here](https://www.dropbox.com/s/a6t3er8f03gdl4z/model_checkpoints.tgz?dl=0), untar it, and put it under `$SQDT_ROOT/data/` If you are using command line, type:
 
 ```Shell
-cd $SQ_ROOT/data/
+cd $SQDT_ROOT/data/
 wget https://www.dropbox.com/s/a6t3er8f03gdl4z/model_checkpoints.tgz
 tar -xzvf model_checkpoints.tgz
 rm model_checkpoints.tgz
 ```
 
-- Now we can run some demos. To detect the sample image given in `SQ_ROOT/data`,
+## Demo:
+- Now we can run some demos. To detect the sample image given in `$SQDT_ROOT/data`,
 
 ```Shell
-cd $SQ_ROOT/data/
+cd $SQDT_ROOT/data/
 python ./src/demo.py
 ```
-If the installation is correct, the detector should generate this image:
+  If the installation is correct, the detector should generate this image: ![alt text](https://github.com/BichenWuUCB/squeezeDet/blob/master/data/out/out_sample.png)
 
-To detect multiple images, use the flag `--input_path=./data/*.png` to specify images. Input images will be scaled to the resolution of 1242x375 (KITTI image resolution), so it works best when input images' original resolution is close to that.  
+To detect other image(s), use the flag `--input_path=./data/*.png` to point to input image(s). Input image(s) will be scaled to the resolution of 1242x375 (KITTI image resolution), so it works best when original resolution is close to that.  
 
+- SqueezeDet is a real-time object detector, which can be used to detect videos. The video demo will be released later.
 
+## Training/Validation:
+- Download KITTI object detection dataset: [images](http://www.cvlibs.net/download.php?file=data_object_image_2.zip) and [labels](http://www.cvlibs.net/download.php?file=data_object_label_2.zip). Put them under `$SQDT_ROOT/data/KITTI/`. Unzip them, then you will get two directories:  `$SQDT_ROOT/data/KITTI/training/` and `$SQDT_ROOT/data/KITTI/testing/`. 
+
+- Now we need to split the training data into a training set and a vlidation set. 
+
+```Shell
+cd $SQDT_ROOT/data/KITTI/
+mkdir ImageSets
+cd ./ImageSets
+ls ../training/image_2/ | grep ".png" | sed s/.png// > trainval.txt
+```
+`trainval.txt` contains indices to all the images in the training data. In our experiments, we randomly split half of indices in `trainval.txt` into `train.txt` to form a trainint set and rest of them into `val.txt` to form a validation set. 
+
+When above two steps are finished, the structure of `$SQDT_ROOT/data/KITTI/` should at least contain:
+
+```Shell
+$SQDT_ROOT/data/KITTI/
+                  |->training/
+                  |     |-> image_2/00****.png
+                  |     L-> label_2/00****.txt
+                  |->testing/
+                  |     L-> image_2/00****.png
+                  L->ImageSets/
+                        |-> trainval.txt
+                        |-> train.txt
+                        L-> val.txt
+```
+
+- Next, download the CNN model pretrained for ImageNet classification:
+```Shell
+cd $SQDT_ROOT/data/
+# SqueezeNet
+wget https://www.dropbox.com/s/fzvtkc42hu3xw47/SqueezeNet.tgz
+tar -xzvf SqueezeNet.tgz
+# ResNet50 
+wget https://www.dropbox.com/s/p65lktictdq011t/ResNet.tgz
+tar -xzvf ResNet.tgz
+# VGG16
+
+```
+
+- Now we can start training. Training script can be found in `$SQDT_ROOT/scripts/train.sh`, which contains commands to train 4 models: SqueezeDet, SqueezeDet+, VGG16+ConvDet, ResNet50+ConvDet. Un-comment the model you want to train, and then, type:
+
+```Shell
+cd $SQDT_ROOT/data/
+./scripts/train.sh
+```
+
+Training logs are saved to the directory specified by `--train_dir`.  You may want to change it before start training. 
+- At the same time, you can launch evaluation by 
+
+```Shell
+cd $SQDT_ROOT/data/
+./scripts/eval_train.sh
+./scripts/eval_val.sh
+```
+
+If you've changed the `--train_dir` in the training script, make sure to also change `--checkpoint_dir` in the evaluation script so they can find the checkpoints.
+
+The two scripts simultaneously evaluate the model on training and validation set. The training script keeps dumping checkpoint (model parameters) to the training directory. Once a new checkpoint is saved, evaluation threads load the new checkpoint file and evaluate them on training and validation set. This way, you can monitor real-time training status. 
+
+Finally, to monitor training and evaluation process, you can use tensorboard by
+
+```Shell
+tensorboard --logdir=$LOG_DIR
+```
+It's recommended to put `--train_dir` and  `--eval_dir` under `$LOG_DIR` such that tensorboard can load both training and evaluation logs. From tensorboard, you should be able to see a lot of information including loss, Average Precisions, error analysis, example detections, model visualization, etc. 
+![alt text](https://www.dropbox.com/s/vl918g1x0rc0uor/Screenshot%202016-12-09%2023.45.28.png)
 
 
