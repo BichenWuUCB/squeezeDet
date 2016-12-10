@@ -42,7 +42,7 @@ rm model_checkpoints.tgz
 cd $SQDT_ROOT/data/
 python ./src/demo.py
 ```
-If the installation is correct, the detector should generate this image: ![alt text](https://github.com/BichenWuUCB/squeezeDet/blob/master/data/out/out_sample.png)
+  If the installation is correct, the detector should generate this image: ![alt text](https://github.com/BichenWuUCB/squeezeDet/blob/master/data/out/out_sample.png)
 
 To detect other image(s), use the flag `--input_path=./data/*.png` to point to input image(s). Input image(s) will be scaled to the resolution of 1242x375 (KITTI image resolution), so it works best when original resolution is close to that.  
 
@@ -76,8 +76,45 @@ $SQDT_ROOT/data/KITTI/
                         L-> val.txt
 ```
 
-- Next, let's download the CNN model pretrained for ImageNet classification:
+- Next, download the CNN model pretrained for ImageNet classification:
+```Shell
+cd $SQDT_ROOT/data/
+# SqueezeNet
+wget https://www.dropbox.com/s/fzvtkc42hu3xw47/SqueezeNet.tgz
+tar -xzvf SqueezeNet.tgz
+# ResNet50 
+wget https://www.dropbox.com/s/p65lktictdq011t/ResNet.tgz
+tar -xzvf ResNet.tgz
+# VGG16
 
+```
 
+- Now we can start training. Training script can be found in `$SQDT_ROOT/scripts/train.sh`, which contains commands to train 4 models: SqueezeDet, SqueezeDet+, VGG16+ConvDet, ResNet50+ConvDet. Un-comment the model you want to train, and then, type:
+
+```Shell
+cd $SQDT_ROOT/data/
+./scripts/train.sh
+```
+
+Training logs are saved to the directory specified by `--train_dir`.  You may want to change it before start training. 
+- At the same time, you can launch evaluation by 
+
+```Shell
+cd $SQDT_ROOT/data/
+./scripts/eval_train.sh
+./scripts/eval_val.sh
+```
+
+If you've changed the `--train_dir` in the training script, make sure to also change `--checkpoint_dir` in the evaluation script so they can find the checkpoints.
+
+The two scripts simultaneously evaluate the model on training and validation set. The training script keeps dumping checkpoint (model parameters) to the training directory. Once a new checkpoint is saved, evaluation threads load the new checkpoint file and evaluate them on training and validation set. This way, you can monitor real-time training status. 
+
+Finally, to monitor training and evaluation process, you can use tensorboard by
+
+```Shell
+tensorboard --logdir=$LOG_DIR
+```
+It's recommended to put `--train_dir` and  `--eval_dir` under `$LOG_DIR` such that tensorboard can load both training and evaluation logs. From tensorboard, you should be able to see a lot of information including loss, Average Precisions, error analysis, example detections, model visualization, etc. 
+![alt text](https://www.dropbox.com/s/vl918g1x0rc0uor/Screenshot%202016-12-09%2023.45.28.png)
 
 
