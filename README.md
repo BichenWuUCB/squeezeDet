@@ -41,7 +41,7 @@ This repository contains a tensorflow implementation of SqueezeDet, a convolutio
 - Now we can run the demo. To detect the sample image `$SQDT_ROOT/data/sample.png`,
 
   ```Shell
-  cd $SQDT_ROOT/data/
+  cd $SQDT_ROOT/
   python ./src/demo.py
   ```
   If the installation is correct, the detector should generate this image: ![alt text](https://github.com/BichenWuUCB/squeezeDet/blob/master/README/out_sample.png)
@@ -95,7 +95,7 @@ This repository contains a tensorflow implementation of SqueezeDet, a convolutio
 - Now we can start training. Training script can be found in `$SQDT_ROOT/scripts/train.sh`, which contains commands to train 4 models: SqueezeDet, SqueezeDet+, VGG16+ConvDet, ResNet50+ConvDet. Un-comment the model you want to train, and then, type:
 
   ```Shell
-  cd $SQDT_ROOT/data/
+  cd $SQDT_ROOT/
   ./scripts/train.sh
   ```
 
@@ -104,7 +104,7 @@ This repository contains a tensorflow implementation of SqueezeDet, a convolutio
 - At the same time, you can launch evaluation by 
 
   ```Shell
-  cd $SQDT_ROOT/data/
+  cd $SQDT_ROOT/
   ./scripts/eval_train.sh
   ./scripts/eval_val.sh
   ```
