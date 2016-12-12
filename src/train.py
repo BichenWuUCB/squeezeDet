@@ -47,7 +47,7 @@ tf.app.flags.DEFINE_integer('checkpoint_step', 1000,
 tf.app.flags.DEFINE_string('gpu', '0', """gpu id.""")
 
 
-def _draw_box(im, box_list, label_list, color=(0,255,0), form='center'):
+def _draw_box(im, box_list, label_list, color=(0,255,0), cdict=None, form='center'):
   assert form == 'center' or form == 'diagonal', \
       'bounding box format not accepted: {}.'.format(form)
 
@@ -58,11 +58,17 @@ def _draw_box(im, box_list, label_list, color=(0,255,0), form='center'):
 
     xmin, ymin, xmax, ymax = [int(b) for b in bbox]
 
+    l = label.split(':')[0] # text before "CLASS: (PROB)"
+    if cdict and l in cdict:
+      c = cdict[l]
+    else:
+      c = color
+
     # draw box
-    cv2.rectangle(im, (xmin, ymin), (xmax, ymax), color, 1)
+    cv2.rectangle(im, (xmin, ymin), (xmax, ymax), c, 1)
     # draw label
     font = cv2.FONT_HERSHEY_SIMPLEX
-    cv2.putText(im, label, (xmin, ymax), font, 0.3, color, 1)
+    cv2.putText(im, label, (xmin, ymax), font, 0.3, c, 1)
 
 def _viz_prediction_result(model, images, bboxes, labels, batch_det_bbox,
                            batch_det_class, batch_det_prob):
