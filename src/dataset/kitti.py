@@ -32,8 +32,7 @@ class kitti(imdb):
     # TODO(bichen): add a random seed as parameter
     self._shuffle_image_idx()
 
-    self._eval_tool = os.path.join(
-        self.mc.ROOT_DIR, 'src/dataset/kitti-eval/cpp/evaluate_object')
+    self._eval_tool = './src/dataset/kitti-eval/cpp/evaluate_object'
 
   def _load_image_set_idx(self):
     image_set_file = os.path.join(
