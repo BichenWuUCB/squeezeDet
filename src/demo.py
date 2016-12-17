@@ -196,7 +196,7 @@ def image_demo():
             im, final_boxes,
             [mc.CLASS_NAMES[idx]+': (%.2f)'% prob \
                 for idx, prob in zip(final_class, final_probs)],
-            cls2clr,
+            cdict=cls2clr,
         )
 
         file_name = os.path.split(f)[1]
