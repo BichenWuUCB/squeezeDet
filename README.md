@@ -116,7 +116,7 @@ This repository contains a tensorflow implementation of SqueezeDet, a convolutio
   ./scripts/eval_val.sh
   ```
 
-  If you've changed the `--train_dir` in the training script, make sure to also change `--checkpoint_dir` in the evaluation script to the same as `--train_dir` so evaluation script knows where to find the checkpoint. Also, it's recommended to put `--train_dir` and  `--eval_dir` under the same `$LOG_DIR` such that tensorboard can load both training and evaluation logs. 
+  If you've changed the `--train_dir` in the training script, make sure to also change `--checkpoint_dir` in the evaluation script to the same as `--train_dir` so evaluation script knows where to find the checkpoint. The evaluation logs will be dumped into the directory specified by `--eval_dir`. It's recommended to put `--train_dir` and  `--eval_dir` under the same `$LOG_DIR` such that tensorboard can load both training and evaluation logs. 
 
   The two scripts simultaneously evaluate the model on training and validation set. The training script keeps dumping checkpoint (model parameters) to the training directory once every 1000 steps (step size can be changed). Once a new checkpoint is saved, evaluation threads load the new checkpoint file and evaluate them on training and validation set. 
 
@@ -125,7 +125,7 @@ This repository contains a tensorflow implementation of SqueezeDet, a convolutio
   ```Shell
   tensorboard --logdir=$LOG_DIR
   ```
-  From tensorboard, you should be able to see a lot of information including loss, average precision, error analysis, example detections, model visualization, etc.
+  Here, `$LOG_DIR` is the directory where your training and evaluation threads dump log events. As we mentioned it before, your training directory is specified by the flag `--train_dir` and your evaluation directory is specified by `--eval_dir`. Then `$LOG_DIR` should be the upper directory to `--train_dir` and `--eval_dir`. From tensorboard, you should be able to see a lot of information including loss, average precision, error analysis, example detections, model visualization, etc.
 
   ![alt text](https://github.com/BichenWuUCB/squeezeDet/blob/master/README/detection_analysis.png)
   ![alt text](https://github.com/BichenWuUCB/squeezeDet/blob/master/README/graph.png)
