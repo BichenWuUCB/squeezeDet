@@ -12,7 +12,7 @@ This repository contains a tensorflow implementation of SqueezeDet, a convolutio
     
 ## Installation:
 - Prerequisites:
-    - Follow instructions to install Tensorflow: https://www.tensorflow.org.
+    - Follow instructions to install Tensorflow: https://www.tensorflow.org. Version: 0.11.0rc0
     - Install opencv: http://opencv.org
     - Other packages that you might also need: easydict, joblib. You can use pip to install these packages:
     
