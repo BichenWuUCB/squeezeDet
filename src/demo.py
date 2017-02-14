@@ -24,6 +24,9 @@ from config import *
 from train import _draw_box
 from nets import *
 
+# FOR DEBUG ONLY
+# os.chdir('../')
+
 FLAGS = tf.app.flags.FLAGS
 
 tf.app.flags.DEFINE_string(

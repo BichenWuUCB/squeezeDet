@@ -47,7 +47,7 @@ tf.app.flags.DEFINE_integer('checkpoint_step', 1000,
 tf.app.flags.DEFINE_string('gpu', '0', """gpu id.""")
 
 
-def _draw_box(im, box_list, label_list, color=(0,255,0), cdict=None, form='center'):
+def _draw_box(im, box_list, label_list, color=(0, 255, 0), cdict=None, form='center'):
   assert form == 'center' or form == 'diagonal', \
       'bounding box format not accepted: {}.'.format(form)
 
@@ -154,14 +154,15 @@ def train():
       os.path.join(FLAGS.train_dir, 'model_metrics.txt')))
 
     saver = tf.train.Saver(tf.all_variables())
-    summary_op = tf.merge_all_summaries()
+    summary_op = tf.summary.merge_all()
+
     init = tf.initialize_all_variables()
 
     sess = tf.Session(config=tf.ConfigProto(allow_soft_placement=True))
     sess.run(init)
     tf.train.start_queue_runners(sess=sess)
 
-    summary_writer = tf.train.SummaryWriter(FLAGS.train_dir, sess.graph)
+    summary_writer = tf.summary.FileWriter(FLAGS.train_dir, sess.graph)
 
     for step in xrange(FLAGS.max_steps):
       start_time = time.time()
@@ -230,9 +231,9 @@ def train():
         viz_summary = sess.run(
             model.viz_op, feed_dict={model.image_to_show: image_per_batch})
 
-        num_discarded_labels_op = tf.scalar_summary(
+        num_discarded_labels_op = tf.summary.scalar(
             'counter/num_discarded_labels', num_discarded_labels)
-        num_labels_op = tf.scalar_summary(
+        num_labels_op = tf.summary.scalar(
             'counter/num_labels', num_labels)
 
         counter_summary_str = sess.run([num_discarded_labels_op, num_labels_op])
