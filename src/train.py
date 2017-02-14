@@ -153,10 +153,10 @@ def train():
     print ('Model statistics saved to {}.'.format(
       os.path.join(FLAGS.train_dir, 'model_metrics.txt')))
 
-    saver = tf.train.Saver(tf.all_variables())
+    saver = tf.train.Saver(tf.global_variables())
     summary_op = tf.summary.merge_all()
 
-    init = tf.initialize_all_variables()
+    init = tf.global_variables_initializer()
 
     sess = tf.Session(config=tf.ConfigProto(allow_soft_placement=True))
     sess.run(init)
