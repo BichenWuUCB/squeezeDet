@@ -157,9 +157,14 @@ def train():
     summary_op = tf.summary.merge_all()
 
     init = tf.global_variables_initializer()
-
     sess = tf.Session(config=tf.ConfigProto(allow_soft_placement=True))
     sess.run(init)
+
+    #TODO(shizehao) Restore gobal step
+    ckpt = tf.train.get_checkpoint_state(FLAGS.train_dir)
+    if ckpt and ckpt.model_checkpoint_path:
+        saver.restore(sess, ckpt.model_checkpoint_path)
+
     tf.train.start_queue_runners(sess=sess)
 
     summary_writer = tf.summary.FileWriter(FLAGS.train_dir, sess.graph)
@@ -272,9 +277,9 @@ def train():
         saver.save(sess, checkpoint_path, global_step=step)
 
 def main(argv=None):  # pylint: disable=unused-argument
-  if tf.gfile.Exists(FLAGS.train_dir):
-    tf.gfile.DeleteRecursively(FLAGS.train_dir)
-  tf.gfile.MakeDirs(FLAGS.train_dir)
+  #if tf.gfile.Exists(FLAGS.train_dir):
+  #  tf.gfile.DeleteRecursively(FLAGS.train_dir)
+  #tf.gfile.MakeDirs(FLAGS.train_dir)
   train()
 
 
