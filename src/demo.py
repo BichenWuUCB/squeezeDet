@@ -1,6 +1,6 @@
 # Author: Bichen Wu (bichen@berkeley.edu) 08/25/2016
 
-"""SqueezeDet Demo. 
+"""SqueezeDet Demo.
 
 In image detection mode, for a given image, detect objects and draw bounding
 boxes around them. In video detection mode, perform real-time detection on the
@@ -15,7 +15,7 @@ import cv2
 import time
 import sys
 import os
-import glob 
+import glob
 
 import numpy as np
 import tensorflow as tf
@@ -85,14 +85,14 @@ def video_demo():
         t_reshape = time.time()
         times['reshape']= t_reshape - t_start
 
-        # Detect 
+        # Detect
         det_boxes, det_probs, det_class = sess.run(
             [model.det_boxes, model.det_probs, model.det_class],
             feed_dict={model.image_input:[im_input], model.keep_prob: 1.0})
 
         t_detect = time.time()
         times['detect']= t_detect - t_reshape
-
+        
         # Filter
         final_boxes, final_probs, final_class = model.filter_prediction(
             det_boxes[0], det_probs[0], det_class[0])
@@ -107,7 +107,7 @@ def video_demo():
         times['filter']= t_filter - t_detect
 
         # Draw boxes
-        
+
         # TODO(bichen): move this color dict to configuration file
         cls2clr = {
             'car': (255, 191, 0),
@@ -169,7 +169,7 @@ def image_demo():
         im = cv2.resize(im, (mc.IMAGE_WIDTH, mc.IMAGE_HEIGHT))
         input_image = im - mc.BGR_MEANS
 
-        # Detect 
+        # Detect
         det_boxes, det_probs, det_class = sess.run(
             [model.det_boxes, model.det_probs, model.det_class],
             feed_dict={model.image_input:[input_image], model.keep_prob: 1.0})

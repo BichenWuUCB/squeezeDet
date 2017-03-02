@@ -110,24 +110,24 @@ def eval_once(saver, ckpt_path, summary_writer, imdb, model):
     eval_summary_ops = []
     for cls, ap in zip(ap_names, aps):
       eval_summary_ops.append(
-          tf.scalar_summary('APs/'+cls, ap)
+          tf.summary.scalar('APs/'+cls, ap)
       )
       print ('    {}: {:.3f}'.format(cls, ap))
     print ('    Mean average precision: {:.3f}'.format(np.mean(aps)))
     eval_summary_ops.append(
-        tf.scalar_summary('APs/mAP', np.mean(aps))
+        tf.summary.scalar('APs/mAP', np.mean(aps))
     )
     eval_summary_ops.append(
-        tf.scalar_summary('timing/image_detect', _t['im_detect'].average_time)
+        tf.summary.scalar('timing/image_detect', _t['im_detect'].average_time)
     )
     eval_summary_ops.append(
-        tf.scalar_summary('timing/image_read', _t['im_read'].average_time)
+        tf.summary.scalar('timing/image_read', _t['im_read'].average_time)
     )
     eval_summary_ops.append(
-        tf.scalar_summary('timing/post_process', _t['misc'].average_time)
+        tf.summary.scalar('timing/post_process', _t['misc'].average_time)
     )
     eval_summary_ops.append(
-        tf.scalar_summary('num_detections_per_image', num_detection/num_images)
+        tf.summary.scalar('num_detections_per_image', num_detection/num_images)
     )
 
     print ('Analyzing detections...')
@@ -135,7 +135,7 @@ def eval_once(saver, ckpt_path, summary_writer, imdb, model):
         FLAGS.eval_dir, global_step)
     for k, v in stats.iteritems():
       eval_summary_ops.append(
-          tf.scalar_summary(
+          tf.summary.scalar(
             'Detection Analysis/'+k, v)
       )
 

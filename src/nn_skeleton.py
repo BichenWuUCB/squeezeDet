@@ -26,7 +26,7 @@ def _add_loss_summaries(total_loss):
   # Attach a scalar summary to all individual losses and the total loss; do the
   # same for the averaged version of the losses.
   for l in losses + [total_loss]:
-    tf.scalar_summary(l.op.name, l)
+    tf.summary.scalar(l.op.name, l)
 
 def _variable_on_device(name, shape, initializer, trainable=True):
   """Helper to create a Variable.
@@ -65,7 +65,7 @@ def _variable_with_weight_decay(name, shape, wd, initializer, trainable=True):
   """
   var = _variable_on_device(name, shape, initializer, trainable)
   if wd is not None and trainable:
-    weight_decay = tf.mul(tf.nn.l2_loss(var), wd, name='weight_loss')
+    weight_decay = tf.multiply(tf.nn.l2_loss(var), wd, name='weight_loss')
     tf.add_to_collection('losses', weight_decay)
   return var
 
@@ -159,7 +159,7 @@ class ModelSkeleton:
 
     with tf.variable_scope('bbox') as scope:
       with tf.variable_scope('stretching'):
-        delta_x, delta_y, delta_w, delta_h = tf.unpack(
+        delta_x, delta_y, delta_w, delta_h = tf.unstack(
             self.pred_box_delta, axis=2)
 
         anchor_x = mc.ANCHOR_BOX[:, 0]
@@ -211,7 +211,7 @@ class ModelSkeleton:
         self._activation_summary(ymaxs, 'box_ymax')
 
         self.det_boxes = tf.transpose(
-            tf.pack(util.bbox_transform_inv([xmins, ymins, xmaxs, ymaxs])),
+            tf.stack(util.bbox_transform_inv([xmins, ymins, xmaxs, ymaxs])),
             (1, 2, 0), name='bbox'
         )
 
@@ -225,13 +225,13 @@ class ModelSkeleton:
 
           w = tf.maximum(0.0, xmax-xmin, name='inter_w')
           h = tf.maximum(0.0, ymax-ymin, name='inter_h')
-          intersection = tf.mul(w, h, name='intersection')
+          intersection = tf.multiply(w, h, name='intersection')
 
         with tf.variable_scope('union'):
-          w1 = tf.sub(box1[2], box1[0], name='w1')
-          h1 = tf.sub(box1[3], box1[1], name='h1')
-          w2 = tf.sub(box2[2], box2[0], name='w2')
-          h2 = tf.sub(box2[3], box2[1], name='h2')
+          w1 = tf.subtract(box1[2], box1[0], name='w1')
+          h1 = tf.subtract(box1[3], box1[1], name='h1')
+          w2 = tf.subtract(box2[2], box2[0], name='w2')
+          h2 = tf.subtract(box2[3], box2[1], name='h2')
 
           union = w1*h1 + w2*h2 - intersection
 
@@ -240,8 +240,8 @@ class ModelSkeleton:
 
       self.ious = self.ious.assign(
           _tensor_iou(
-              util.bbox_transform(tf.unpack(self.det_boxes, axis=2)),
-              util.bbox_transform(tf.unpack(self.box_input, axis=2))
+              util.bbox_transform(tf.unstack(self.det_boxes, axis=2)),
+              util.bbox_transform(tf.unstack(self.box_input, axis=2))
           )
       )
       self._activation_summary(self.ious, 'conf_score')
@@ -249,7 +249,7 @@ class ModelSkeleton:
     with tf.variable_scope('probability') as scope:
       self._activation_summary(self.pred_class_probs, 'class_probs')
 
-      probs = tf.mul(
+      probs = tf.multiply(
           self.pred_class_probs,
           tf.reshape(self.pred_conf, [mc.BATCH_SIZE, mc.ANCHORS, 1]),
           name='final_class_prob'
@@ -289,7 +289,7 @@ class ModelSkeleton:
           name='confidence_loss'
       )
       tf.add_to_collection('losses', self.conf_loss)
-      tf.scalar_summary('mean iou', tf.reduce_sum(self.ious)/self.num_objects)
+      tf.summary.scalar('mean iou', tf.reduce_sum(self.ious)/self.num_objects)
 
     with tf.variable_scope('bounding_box_regression') as scope:
       self.bbox_loss = tf.truediv(
@@ -315,7 +315,7 @@ class ModelSkeleton:
                                     mc.LR_DECAY_FACTOR,
                                     staircase=True)
 
-    tf.scalar_summary('learning_rate', lr)
+    tf.summary.scalar('learning_rate', lr)
 
     _add_loss_summaries(self.loss)
 
@@ -329,11 +329,11 @@ class ModelSkeleton:
     apply_gradient_op = opt.apply_gradients(grads_vars, global_step=self.global_step)
 
     for var in tf.trainable_variables():
-        tf.histogram_summary(var.op.name, var)
+        tf.summary.histogram(var.op.name, var)
 
     for grad, var in grads_vars:
       if grad is not None:
-        tf.histogram_summary(var.op.name + '/gradients', grad)
+        tf.summary.histogram(var.op.name + '/gradients', grad)
 
     with tf.control_dependencies([apply_gradient_op]):
       self.train_op = tf.no_op(name='train')
@@ -345,9 +345,9 @@ class ModelSkeleton:
         tf.float32, [None, mc.IMAGE_HEIGHT, mc.IMAGE_WIDTH, 3],
         name='image_to_show'
     )
-    self.viz_op = tf.image_summary('sample_detection_results',
+    self.viz_op = tf.summary.image('sample_detection_results',
         self.image_to_show, collections='image_summary',
-        max_images=mc.BATCH_SIZE)
+        max_outputs=mc.BATCH_SIZE)
 
   def _conv_bn_layer(
       self, inputs, conv_param_name, bn_param_name, scale_param_name, filters,
@@ -721,13 +721,13 @@ class ModelSkeleton:
       nothing
     """
     with tf.variable_scope('activation_summary') as scope:
-      tf.histogram_summary(
+      tf.summary.histogram(
           'activation_summary/'+layer_name, x)
-      tf.scalar_summary(
+      tf.summary.scalar(
           'activation_summary/'+layer_name+'/sparsity', tf.nn.zero_fraction(x))
-      tf.scalar_summary(
+      tf.summary.scalar(
           'activation_summary/'+layer_name+'/average', tf.reduce_mean(x))
-      tf.scalar_summary(
+      tf.summary.scalar(
           'activation_summary/'+layer_name+'/max', tf.reduce_max(x))
-      tf.scalar_summary(
+      tf.summary.scalar(
           'activation_summary/'+layer_name+'/min', tf.reduce_min(x))
