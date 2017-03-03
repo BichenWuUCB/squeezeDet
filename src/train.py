@@ -153,15 +153,19 @@ def train():
     print ('Model statistics saved to {}.'.format(
       os.path.join(FLAGS.train_dir, 'model_metrics.txt')))
 
-    saver = tf.train.Saver(tf.all_variables())
-    summary_op = tf.merge_all_summaries()
-    init = tf.initialize_all_variables()
+    saver = tf.train.Saver(tf.global_variables())
+    summary_op = tf.summary.merge_all()
+    init = tf.global_variables_initializer()
+
+    ckpt = tf.train.get_checkpoint_state(FLAGS.train_dir)
+    if ckpt and ckpt.model_checkpoint_path:
+        saver.restore(sess, ckpt.model_checkpoint_path)
 
     sess = tf.Session(config=tf.ConfigProto(allow_soft_placement=True))
     sess.run(init)
     tf.train.start_queue_runners(sess=sess)
 
-    summary_writer = tf.train.SummaryWriter(FLAGS.train_dir, sess.graph)
+    summary_writer = tf.summary.FileWriter(FLAGS.train_dir, sess.graph)
 
     for step in xrange(FLAGS.max_steps):
       start_time = time.time()
@@ -209,7 +213,7 @@ def train():
               bbox_indices, [mc.BATCH_SIZE, mc.ANCHORS, 4],
               box_values),
           model.labels: sparse_to_dense(
-              label_indices, 
+              label_indices,
               [mc.BATCH_SIZE, mc.ANCHORS, mc.CLASSES],
               [1.0]*len(label_indices)),
       }
@@ -230,9 +234,9 @@ def train():
         viz_summary = sess.run(
             model.viz_op, feed_dict={model.image_to_show: image_per_batch})
 
-        num_discarded_labels_op = tf.scalar_summary(
+        num_discarded_labels_op = tf.summary.scalar(
             'counter/num_discarded_labels', num_discarded_labels)
-        num_labels_op = tf.scalar_summary(
+        num_labels_op = tf.summary.scalar(
             'counter/num_labels', num_labels)
 
         counter_summary_str = sess.run([num_discarded_labels_op, num_labels_op])

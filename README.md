@@ -11,22 +11,36 @@ This repository contains a tensorflow implementation of SqueezeDet, a convolutio
     }
     
 ## Installation:
-- Prerequisites:
-    - Follow instructions to install Tensorflow: https://www.tensorflow.org. Version: 0.11.0rc0
-    - Install opencv: http://opencv.org
-    - Other packages that you might also need: easydict, joblib. You can use pip to install these packages:
-    
-    ```Shell
-    pip install easydict
-    pip install joblib
-    ```
+
+The following instructions are written for Linux-based distros.
+
 - Clone the SqueezeDet repository:
 
   ```Shell
   git clone https://github.com/BichenWuUCB/squeezeDet.git
   ```
-  Let's call the top level directory of SqueezeDet as `$SQDT_ROOT`. 
+  Let's call the top level directory of SqueezeDet `$SQDT_ROOT`. 
 
+- (Optional) Setup your own virtual environment.
+
+  1. The following assumes `python` is the Python2.7 executable. Navigate to your user home directory, and create the virtual environment there.
+  
+    ```Shell
+    cd ~
+    virtualenv env --python=python
+    ```
+    
+  2. Launch the virtual environment.
+  
+    ```Shell
+    source env/bin/activate
+    ```
+    
+- Use pip to install required Python packages:
+    
+    ```Shell
+    pip install -r requirements.txt
+    ```
 ## Demo:
 - Download SqueezeDet model parameters from [here](https://www.dropbox.com/s/a6t3er8f03gdl4z/model_checkpoints.tgz?dl=0), untar it, and put it under `$SQDT_ROOT/data/` If you are using command line, type:
 
@@ -99,11 +113,17 @@ This repository contains a tensorflow implementation of SqueezeDet, a convolutio
   tar -xzvf VGG16.tgz
   ```
 
-- Now we can start training. Training script can be found in `$SQDT_ROOT/scripts/train.sh`, which contains commands to train 4 models: SqueezeDet, SqueezeDet+, VGG16+ConvDet, ResNet50+ConvDet. Un-comment the model you want to train, and then, type:
+- Now we can start training. Training script can be found in `$SQDT_ROOT/scripts/train.sh`, which contains commands to train 4 models: SqueezeDet, SqueezeDet+, VGG16+ConvDet, ResNet50+ConvDet. Un-comment the model you want to train, and then, type the following to train using only the CPU:
 
   ```Shell
   cd $SQDT_ROOT/
-  ./scripts/train.sh
+  ./scripts/train.sh squeezeDet
+  ```
+
+  To train using the GPU, add the `-gpu` flag.
+  
+  ```Shell
+  ./scripts/train.sh squeezeDet -gpu
   ```
 
   Training logs are saved to the directory specified by `--train_dir`. 
