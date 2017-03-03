@@ -113,11 +113,17 @@ The following instructions are written for Linux-based distros.
   tar -xzvf VGG16.tgz
   ```
 
-- Now we can start training. Training script can be found in `$SQDT_ROOT/scripts/train.sh`, which contains commands to train 4 models: SqueezeDet, SqueezeDet+, VGG16+ConvDet, ResNet50+ConvDet. Un-comment the model you want to train, and then, type:
+- Now we can start training. Training script can be found in `$SQDT_ROOT/scripts/train.sh`, which contains commands to train 4 models: SqueezeDet, SqueezeDet+, VGG16+ConvDet, ResNet50+ConvDet. Un-comment the model you want to train, and then, type the following to train using only the CPU:
 
   ```Shell
   cd $SQDT_ROOT/
-  ./scripts/train.sh
+  ./scripts/train.sh squeezeDet
+  ```
+
+  To train using the GPU, add the `-gpu` flag.
+  
+  ```Shell
+  ./scripts/train.sh squeezeDet -gpu
   ```
 
   Training logs are saved to the directory specified by `--train_dir`. 
