@@ -178,7 +178,7 @@ def evaluate():
 
     saver = tf.train.Saver(model.model_params)
 
-    summary_writer = tf.train.SummaryWriter(FLAGS.eval_dir, g)
+    summary_writer = tf.summary.FileWriter(FLAGS.eval_dir, g)
     
     ckpts = set() 
     while True:

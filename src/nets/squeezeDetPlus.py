@@ -102,4 +102,4 @@ class SqueezeDetPlus(ModelSkeleton):
         layer_name+'/expand3x3', sq1x1, filters=e3x3, size=3, stride=1,
         padding='SAME', freeze=freeze)
 
-    return tf.concat(3, [ex1x1, ex3x3], name=layer_name+'/concat')
+    return tf.concat([ex1x1, ex3x3], 3, name=layer_name+'/concat')
