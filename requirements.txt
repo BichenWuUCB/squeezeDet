@@ -3,4 +3,4 @@ joblib==0.10.3
 numpy==1.12.0
 opencv-python==3.2.0.6
 Pillow==4.0.0
-tensorflow-gpu=1.0.0
+tensorflow-gpu==1.0.0
