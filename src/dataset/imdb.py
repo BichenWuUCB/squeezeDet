@@ -141,6 +141,7 @@ class imdb(object):
     for idx in batch_idx:
       # load the image
       im = cv2.imread(self._image_path_at(idx)).astype(np.float32, copy=False)
+      print self._image_path_at(idx)
       im -= mc.BGR_MEANS
       orig_h, orig_w, _ = [float(v) for v in im.shape]
 

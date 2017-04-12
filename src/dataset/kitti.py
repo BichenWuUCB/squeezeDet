@@ -45,7 +45,7 @@ class kitti(imdb):
     return image_idx
 
   def _image_path_at(self, idx):
-    image_path = os.path.join(self._image_path, idx+'.png')
+    image_path = os.path.join(self._image_path, idx+'.jpg')
     assert os.path.exists(image_path), \
         'Image does not exist: {}'.format(image_path)
     return image_path
@@ -170,7 +170,7 @@ class kitti(imdb):
     stats = self.analyze_detections(det_file_dir, det_error_file)
     ims = self.visualize_detections(
         image_dir=self._image_path,
-        image_format='.png',
+        image_format='.jpg',
         det_error_file=det_error_file,
         output_image_dir=det_error_dir,
         num_det_per_type=10
