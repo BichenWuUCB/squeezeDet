@@ -83,7 +83,7 @@ class nexarear(imdb):
         xmax = box['bounding_box_with_pose']['p1']['x']
         ymin = box['bounding_box_with_pose']['p0']['y']
         ymax = box['bounding_box_with_pose']['p1']['y']
-        label = box['label']
+        label = box['label'].lower()
         try:
           cls = self._class_to_idx[label.strip()]
         except:
