@@ -75,6 +75,7 @@ class nexarear(imdb):
         with open(boxes_fname) as infile:
           boxes_in_image = json.load(infile)
       else:
+        print ('Label file not found: {}'.format(boxes_fname))
         boxes_in_image = {'bounding_box_object_annotation': []}
 
       bboxes = []
