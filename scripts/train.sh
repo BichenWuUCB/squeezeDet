@@ -38,7 +38,7 @@ then
   --pretrained_model_path=./data/SqueezeNet/squeezenet_v1.1.pkl \
   --data_path=./data/KITTI \
   --image_set=train \
-  --train_dir=/tmp/bichen/logs/SqueezeDet/train \
+  --train_dir=/opt/data/KITTI/SqueezeDet/train \
   --net=squeezeDet \
   --summary_step=100 \
   --checkpoint_step=500 \
