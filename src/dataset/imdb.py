@@ -55,7 +55,9 @@ class imdb(object):
   def year(self):
     return self._year
 
-  def _shuffle_image_idx(self):
+  def _shuffle_image_idx(self,seed=None):
+    if seed is not None:
+      np.random.seed(seed=seed)
     self._perm_idx = [self._image_idx[i] for i in
         np.random.permutation(np.arange(len(self._image_idx)))]
     self._cur_idx = 0
@@ -147,6 +149,9 @@ class imdb(object):
       # load annotations
       label_per_batch.append([b[4] for b in self._rois[idx][:]])
       gt_bbox = np.array([[b[0], b[1], b[2], b[3]] for b in self._rois[idx][:]])
+      exist_gt_bbox = len(gt_bbox) > 0
+      if not exist_gt_bbox:
+        print ('No GT BBOX for {}'.format(self._image_path_at(idx)))
 
       if mc.DATA_AUGMENTATION:
         assert mc.DRIFT_X >= 0 and mc.DRIFT_Y > 0, \
@@ -154,16 +159,20 @@ class imdb(object):
 
         if mc.DRIFT_X > 0 or mc.DRIFT_Y > 0:
           # Ensures that gt boundibg box is not cutted out of the image
-          max_drift_x = min(gt_bbox[:, 0] - gt_bbox[:, 2]/2.0+1)
-          max_drift_y = min(gt_bbox[:, 1] - gt_bbox[:, 3]/2.0+1)
-          assert max_drift_x >= 0 and max_drift_y >= 0, 'bbox out of image'
+          if exist_gt_bbox:
+            max_drift_x = min(gt_bbox[:, 0] - gt_bbox[:, 2]/2.0+1)
+            max_drift_y = min(gt_bbox[:, 1] - gt_bbox[:, 3]/2.0+1)
+            assert max_drift_x >= 0 and max_drift_y >= 0, 'bbox out of image'
 
-          dy = np.random.randint(-mc.DRIFT_Y, min(mc.DRIFT_Y+1, max_drift_y))
-          dx = np.random.randint(-mc.DRIFT_X, min(mc.DRIFT_X+1, max_drift_x))
+            dy = np.random.randint(-mc.DRIFT_Y, min(mc.DRIFT_Y+1, max_drift_y))
+            dx = np.random.randint(-mc.DRIFT_X, min(mc.DRIFT_X+1, max_drift_x))
 
-          # shift bbox
-          gt_bbox[:, 0] = gt_bbox[:, 0] - dx
-          gt_bbox[:, 1] = gt_bbox[:, 1] - dy
+            # shift bbox
+            gt_bbox[:, 0] = gt_bbox[:, 0] - dx
+            gt_bbox[:, 1] = gt_bbox[:, 1] - dy
+          else:
+            dy = np.random.randint(-mc.DRIFT_Y, mc.DRIFT_Y + 1)
+            dx = np.random.randint(-mc.DRIFT_X, mc.DRIFT_X + 1)
 
           # distort image
           orig_h -= dy
@@ -179,7 +188,8 @@ class imdb(object):
         # Flip image with 50% probability
         if np.random.randint(2) > 0.5:
           im = im[:, ::-1, :]
-          gt_bbox[:, 0] = orig_w - 1 - gt_bbox[:, 0]
+          if exist_gt_bbox:
+            gt_bbox[:, 0] = orig_w - 1 - gt_bbox[:, 0]
 
       # scale image
       im = cv2.resize(im, (mc.IMAGE_WIDTH, mc.IMAGE_HEIGHT))
@@ -188,8 +198,9 @@ class imdb(object):
       # scale annotation
       x_scale = mc.IMAGE_WIDTH/orig_w
       y_scale = mc.IMAGE_HEIGHT/orig_h
-      gt_bbox[:, 0::2] = gt_bbox[:, 0::2]*x_scale
-      gt_bbox[:, 1::2] = gt_bbox[:, 1::2]*y_scale
+      if exist_gt_bbox:
+        gt_bbox[:, 0::2] = gt_bbox[:, 0::2]*x_scale
+        gt_bbox[:, 1::2] = gt_bbox[:, 1::2]*y_scale
       bbox_per_batch.append(gt_bbox)
 
       aidx_per_image, delta_per_image = [], []
