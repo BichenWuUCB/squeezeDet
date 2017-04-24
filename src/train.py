@@ -129,12 +129,24 @@ def train():
 
         imdb = kitti(FLAGS.image_set, FLAGS.data_path, mc)
     elif FLAGS.dataset == 'NEXAREAR':
-        assert FLAGS.net == 'squeezeDet', \
+        assert FLAGS.net == 'squeezeDet' or FLAGS.net == 'squeezeDet+' or FLAGS.net == 'resnet50' or FLAGS.net == 'vgg16', \
             'Currently only the squeezeDet model is supported for the NEXAREAR dataset'
         if FLAGS.net == 'squeezeDet':
           mc = nexarear_squeezeDet_config()
           mc.PRETRAINED_MODEL_PATH = FLAGS.pretrained_model_path
           model = SqueezeDet(mc, FLAGS.gpu)
+        elif FLAGS.net == 'squeezeDet+':
+          mc = nexarear_squeezeDetPlus_config()
+          mc.PRETRAINED_MODEL_PATH = FLAGS.pretrained_model_path
+          model = SqueezeDetPlus(mc, FLAGS.gpu)
+        elif FLAGS.net == 'resnet50':
+          mc = nexarear_res50_config()
+          mc.PRETRAINED_MODEL_PATH = FLAGS.pretrained_model_path
+          model = ResNet50ConvDet(mc, FLAGS.gpu)
+        elif FLAGS.net == 'vgg16':
+          mc = nexarear_vgg16_config()
+          mc.PRETRAINED_MODEL_PATH = FLAGS.pretrained_model_path
+          model = VGG16ConvDet(mc, FLAGS.gpu)
         imdb = nexarear(FLAGS.image_set, FLAGS.data_path, mc)
 
     # save model size, flops, activations by layers
