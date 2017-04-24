@@ -10,7 +10,7 @@ fi
 while test $# -gt 0; do
   case "$1" in
     -h|--help)
-      echo "Usage: ./scripts/train.sh (squeezeDet|squeezeDet+|vgg16|resnet50) [options]"
+      echo "Usage: ./scripts/train.sh (squeezeDet|squeezeDet+|resnet50) [options]"
       echo " "
       echo "options:"
       echo "-h, --help                show brief help"
@@ -51,26 +51,12 @@ fi
 if [[ "$1" == "squeezeDet+" ]]
 then
   python ./src/train.py \
-  --dataset=KITTI \
-  --pretrained_model_path=./data/SqueezeNet/squeezenet_v1.0_SR_0.750.pkl \
-  --data_path=./data/KITTI \
+  --dataset=NEXAREAR \
+  --pretrained_model_path=/opt/data/NEXAREAR/pretrained_models/squeezenet_v1.0_SR_0.750.pkl \
+  --data_path=/opt/data/NEXAREAR \
   --image_set=train \
-  --train_dir=/tmp/bichen/logs/SqueezeDetPlus/train \
+  --train_dir=/opt/logs/NEXAREAR/SqueezeDetPlus/train  \
   --net=squeezeDet+ \
-  --summary_step=100 \
-  --checkpoint_step=500 \
-  --gpu=$USE_GPU
-fi
-
-if [[ "$1" == "vgg16" ]]
-then
-  python ./src/train.py \
-  --dataset=KITTI \
-  --pretrained_model_path=./data/VGG16/VGG_ILSVRC_16_layers_weights.pkl \
-  --data_path=./data/KITTI \
-  --image_set=train \
-  --train_dir=/tmp/bichen/logs/vgg16/train \
-  --net=vgg16 \
   --summary_step=100 \
   --checkpoint_step=500 \
   --gpu=$USE_GPU
@@ -82,11 +68,11 @@ fi
 if [[ "$1" == "resnet50" ]]
 then
   python ./src/train.py \
-  --dataset=KITTI \
-  --pretrained_model_path=./data/ResNet/ResNet-50-weights.pkl \
-  --data_path=./data/KITTI \
+  --dataset=NEXAREAR \
+  --pretrained_model_path=/opt/data/NEXAREAR/pretrained_models/ResNet-50-weights.pkl  \
+  --data_path=/opt/data/NEXAREAR \
   --image_set=train \
-  --train_dir=/tmp/bichen/logs/resnet/train \
+  --train_dir=/opt/logs/NEXAREAR/ResNet50/train  \
   --net=resnet50 \
   --summary_step=100 \
   --checkpoint_step=500 \
