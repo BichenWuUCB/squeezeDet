@@ -11,6 +11,7 @@ from datetime import datetime
 import os.path
 import sys
 import time
+import json
 
 import numpy as np
 from six.moves import xrange
@@ -149,6 +150,10 @@ def train():
           mc.PRETRAINED_MODEL_PATH = FLAGS.pretrained_model_path
           model = VGG16ConvDet(mc, FLAGS.gpu)
         imdb = nexarear(FLAGS.image_set, FLAGS.data_path, mc)
+
+    # dump configuration
+    with open(os.path.join(FLAGS.train_dir, 'model_training_configuration.txt'), 'w') as conf_dump_file:
+        json.dump(mc, conf_dump_file)
 
     # save model size, flops, activations by layers
     with open(os.path.join(FLAGS.train_dir, 'model_metrics.txt'), 'w') as f:
