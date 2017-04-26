@@ -41,6 +41,18 @@ class nexarear(imdb):
 
     self._eval_tool = './src/dataset/kitti-eval/cpp/evaluate_object'
 
+  def get_classes(self):
+    return self._classes
+
+  def get_test_set(self):
+    return self._test_image_idx
+
+  def get_label_path(self):
+    return self._label_path
+
+  def get_images_path(self):
+    return self._image_path
+
   def _load_image_set_idx(self,mc):
     assert os.path.isdir(self._image_path), \
       'Directory for images does not exist: {}'.format(self._image_path)
@@ -72,8 +84,11 @@ class nexarear(imdb):
     for img_fname in self._image_idx:
       boxes_fname = os.path.join(self._label_path, img_fname +'.json')
       if os.path.isfile(boxes_fname):
-        with open(boxes_fname) as infile:
-          boxes_in_image = json.load(infile)
+        try:
+          with open(boxes_fname) as infile:
+            boxes_in_image = json.load(infile)
+        except:
+          print ('Error while loading json file {}'.format(boxes_fname))
       else:
         print ('Label file not found: {}'.format(boxes_fname))
         boxes_in_image = {'bounding_box_object_annotation': []}
