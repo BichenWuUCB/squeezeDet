@@ -11,6 +11,7 @@ from datetime import datetime
 import os.path
 import sys
 import time
+import json
 
 import numpy as np
 from six.moves import xrange
@@ -45,6 +46,7 @@ tf.app.flags.DEFINE_integer('summary_step', 10,
 tf.app.flags.DEFINE_integer('checkpoint_step', 1000,
                             """Number of steps to save summary.""")
 tf.app.flags.DEFINE_string('gpu', '0', """gpu id.""")
+MAX_MODEL_TO_KEEP = 200
 
 
 def _draw_box(im, box_list, label_list, color=(0,255,0), cdict=None, form='center'):
@@ -149,6 +151,10 @@ def train():
           model = VGG16ConvDet(mc, FLAGS.gpu)
         imdb = nexarear(FLAGS.image_set, FLAGS.data_path, mc)
 
+    # dump configuration
+    with open(os.path.join(FLAGS.train_dir, 'model_training_configuration.txt'), 'w') as conf_dump_file:
+        json.dump(mc, conf_dump_file)
+
     # save model size, flops, activations by layers
     with open(os.path.join(FLAGS.train_dir, 'model_metrics.txt'), 'w') as f:
       f.write('Number of parameter by layer:\n')
@@ -175,7 +181,7 @@ def train():
     print ('Model statistics saved to {}.'.format(
       os.path.join(FLAGS.train_dir, 'model_metrics.txt')))
 
-    saver = tf.train.Saver(tf.global_variables())
+    saver = tf.train.Saver(tf.global_variables(), max_to_keep=MAX_MODEL_TO_KEEP)
     summary_op = tf.summary.merge_all()
     init = tf.global_variables_initializer()
 
