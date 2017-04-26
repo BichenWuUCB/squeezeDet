@@ -5,7 +5,7 @@
 	"initialization" : { "LOAD_PRETRAINED_MODEL" : true,
 	                     "load_from_checkpoint" : false,
 	                     "PRETRAINED_MODEL_PATH" : "/opt/data/NEXAREAR/pretrained_models/squeezenet_v1.0_SR_0.750.pkl",
-	                     "checkpoint_file" : "/opt/data/NEXAREAR/checkpoint_files/SqueezeDet/model.ckpt-87000"
+	                     "checkpoint_file" : "/opt/data/NEXAREAR/checkpoint_files/SqueezeDetPlus/model.ckpt-87000"
 	                   },
 	"dataset" : { "DATASET" : "NEXAREAR",
 		          "CLASS_NAMES" : ["car","van","pickup_truck","truck", "bus"],
@@ -46,7 +46,7 @@
 						   "PROB_THRESH" : 0.005,
 						   "TOP_N_DETECTION" :  64
 	                     },
-	 "train" : { "CHECKPOINT_DIR" : "/opt/logs/NEXAREAR/SqueezeNetPlus/train",
+	 "train" : { "CHECKPOINT_DIR" : "/opt/logs/NEXAREAR/SqueezeDetPlus/train",
 	 	         "MAX_STEPS" : 1000000,
 	 	         "SUMMARY_STEP" : 100,
 	 	         "CHECKPOINT_STEP" : 500,
