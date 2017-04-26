@@ -12,7 +12,7 @@ import shutil
 import sys
 import time
 from datetime import datetime
-
+import json
 import cv2
 import numpy as np
 import tensorflow as tf
@@ -56,7 +56,6 @@ tf.app.flags.DEFINE_string('pred_json_folder', '/opt/data/NEXAREAR/pred_labels',
                             """Directory where to write pred jsons """)
 tf.app.flags.DEFINE_float('iou_threshold', 0.5,
                             """IOU threshold""")
-
 
 def _draw_box(im, box_list, label_list, color=(0,255,0), cdict=None, form='center'):
   assert form == 'center' or form == 'diagonal', \
@@ -140,18 +139,34 @@ def train():
 
         imdb = kitti(FLAGS.image_set, FLAGS.data_path, mc)
     elif FLAGS.dataset == 'NEXAREAR':
-        assert FLAGS.net == 'squeezeDet', \
+        assert FLAGS.net == 'squeezeDet' or FLAGS.net == 'squeezeDet+' or FLAGS.net == 'resnet50' or FLAGS.net == 'vgg16', \
             'Currently only the squeezeDet model is supported for the NEXAREAR dataset'
         if FLAGS.net == 'squeezeDet':
           mc = nexarear_squeezeDet_config()
           mc.PRETRAINED_MODEL_PATH = FLAGS.pretrained_model_path
           model = SqueezeDet(mc, FLAGS.gpu)
+        elif FLAGS.net == 'squeezeDet+':
+          mc = nexarear_squeezeDetPlus_config()
+          mc.PRETRAINED_MODEL_PATH = FLAGS.pretrained_model_path
+          model = SqueezeDetPlus(mc, FLAGS.gpu)
+        elif FLAGS.net == 'resnet50':
+          mc = nexarear_res50_config()
+          mc.PRETRAINED_MODEL_PATH = FLAGS.pretrained_model_path
+          model = ResNet50ConvDet(mc, FLAGS.gpu)
+        elif FLAGS.net == 'vgg16':
+          mc = nexarear_vgg16_config()
+          mc.PRETRAINED_MODEL_PATH = FLAGS.pretrained_model_path
+          model = VGG16ConvDet(mc, FLAGS.gpu)
         imdb = nexarear(FLAGS.image_set, FLAGS.data_path, mc)
 
     if not os.path.isdir(FLAGS.train_dir):
       print(os.makedirs(FLAGS.train_dir))
     model_metric_fname = os.path.join(FLAGS.train_dir, 'model_metrics.txt')
     print('Model metric filename {}'.format(model_metric_fname))
+    # dump configuration
+    with open(os.path.join(FLAGS.train_dir, 'model_training_configuration.txt'), 'w') as conf_dump_file:
+        json.dump(mc, conf_dump_file)
+
     # save model size, flops, activations by layers
     with open(model_metric_fname, 'w') as f:
       f.write('Number of parameter by layer:\n')
@@ -177,7 +192,7 @@ def train():
       print ('Model statistics saved to {}.'.format(
       os.path.join(FLAGS.train_dir, 'model_metrics.txt')))
 
-    saver = tf.train.Saver(tf.global_variables())
+    saver = tf.train.Saver(tf.global_variables(), max_to_keep=MAX_MODEL_TO_KEEP)
     summary_op = tf.summary.merge_all()
     init = tf.global_variables_initializer()
 
