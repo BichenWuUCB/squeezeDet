@@ -17,7 +17,7 @@ def nexarear_squeezeDet_config():
 
   mc.IMAGE_WIDTH           = 1280
   mc.IMAGE_HEIGHT          = 720
-  mc.BATCH_SIZE            = 20
+  mc.BATCH_SIZE            = 1
 
   mc.WEIGHT_DECAY          = 0.0001
   mc.LEARNING_RATE         = 0.01
@@ -45,7 +45,7 @@ def nexarear_squeezeDet_config():
   mc.ANCHORS               = len(mc.ANCHOR_BOX)
   mc.ANCHOR_PER_GRID       = 9
 
-  mc.PERCENTAGE_OF_TEST_SET = 0.3
+  mc.PERCENTAGE_OF_TEST_SET = 0.005
   mc.RANDOM_SEED_TEST_TRAIN_SPLIT = 314
 
   return mc

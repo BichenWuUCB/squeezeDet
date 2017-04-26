@@ -1,0 +1,3 @@
+[submodule "nx_commons"]
+	path = nx_commons
+	url = git@github.com:getnexar/nxpy-commons.git

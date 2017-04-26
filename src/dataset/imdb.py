@@ -19,6 +19,7 @@ class imdb(object):
     self._classes = []
     self._image_set = []
     self._image_idx = []
+    self._test_image_idx = []
     self._data_root_path = []
     self._rois = {}
     self.mc = mc
@@ -44,6 +45,10 @@ class imdb(object):
     return self._image_idx
 
   @property
+  def image_idx(self):
+    return self._test_image_idx
+
+  @property
   def image_set(self):
     return self._image_set
 
@@ -61,6 +66,7 @@ class imdb(object):
     self._perm_idx = [self._image_idx[i] for i in
         np.random.permutation(np.arange(len(self._image_idx)))]
     self._cur_idx = 0
+    self._cur_test_idx = 0
 
   def read_image_batch(self, shuffle=True):
     """Only Read a batch of images
