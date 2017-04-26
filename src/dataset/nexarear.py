@@ -13,13 +13,11 @@ from dataset.imdb import imdb
 from utils.util import bbox_transform_inv, batch_iou
 
 class nexarear(imdb):
-  def __init__(self, image_set, data_path, mc):
-    imdb.__init__(self, 'nexarear_'+image_set, mc)
-    self._image_set = image_set
-    self._data_root_path = data_path
-    self._image_path = os.path.join(self._data_root_path, 'images')
-    self._label_path = os.path.join(self._data_root_path, 'labels')
-    self._classes = self.mc.CLASS_NAMES
+  def __init__(self, ALL_ANCHOR_BOXES, mc):
+    imdb.__init__(self, 'nexarear', ALL_ANCHOR_BOXES, mc)
+    self._image_path = mc.dataset.images_dir
+    self._label_path = mc.dataset.labels_dir
+    self._classes = mc.dataset.CLASS_NAMES
     self._class_to_idx = dict(zip(self.classes, xrange(self.num_classes)))
 
     # self._image_idx : a list of file names for train images in the directory
@@ -51,9 +49,9 @@ class nexarear(imdb):
       image_fnames.extend(glob.glob(self._image_path + type))
 
     image_base_names = [os.path.basename(im) for im in image_fnames]
-    n_in_test_set = int(mc.PERCENTAGE_OF_TEST_SET * float(len(image_base_names) ))
+    n_in_test_set = int(mc.dataset.PERCENTAGE_OF_TEST_SET * float(len(image_base_names) ))
 
-    random.seed(mc.RANDOM_SEED_TEST_TRAIN_SPLIT)
+    random.seed(mc.dataset.RANDOM_SEED_TEST_TRAIN_SPLIT)
     random.shuffle(image_base_names)
     return  image_base_names[n_in_test_set:],image_base_names[:n_in_test_set]
 

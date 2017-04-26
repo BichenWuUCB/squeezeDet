@@ -32,11 +32,11 @@ class ResNet50ConvDet(ModelSkeleton):
     """NN architecture."""
 
     mc = self.mc
-    if mc.LOAD_PRETRAINED_MODEL:
-      assert tf.gfile.Exists(mc.PRETRAINED_MODEL_PATH), \
+    if mc.initialization.LOAD_PRETRAINED_MODEL:
+      assert tf.gfile.Exists(mc.initialization.PRETRAINED_MODEL_PATH), \
           'Cannot find pretrained model at the given path:' \
-          '  {}'.format(mc.PRETRAINED_MODEL_PATH)
-      self.caffemodel_weight = joblib.load(mc.PRETRAINED_MODEL_PATH)
+          '  {}'.format(mc.initialization.PRETRAINED_MODEL_PATH)
+      self.caffemodel_weight = joblib.load(mc.initialization.PRETRAINED_MODEL_PATH)
 
     conv1 = self._conv_bn_layer(
         self.image_input, 'conv1', 'bn_conv1', 'scale_conv1', filters=64,
@@ -126,7 +126,7 @@ class ResNet50ConvDet(ModelSkeleton):
 
     dropout4 = tf.nn.dropout(res4f, self.keep_prob, name='drop4')
 
-    num_output = mc.ANCHOR_PER_GRID * (mc.CLASSES + 1 + 4)
+    num_output = mc.anchor_boxes.ANCHOR_PER_GRID * (mc.dataset.N_CLASSES + 1 + 4)
     self.preds = self._conv_layer(
         'conv5', dropout4, filters=num_output, size=3, stride=1,
         padding='SAME', xavier=False, relu=False, stddev=0.0001)
