@@ -76,9 +76,6 @@ def _viz_prediction_result(model, images, bboxes, labels, batch_det_bbox,
 
 def train(mcfg):
   """Train SqueezeDet model"""
-  BATCH_SIZE = mcfg.train.BATCH_SIZE
-  train_dir = mcfg.train.CHECKPOINT_DIR
-
   available_models = { 'squeezeDet' : SqueezeDet,
                        'squeezeDet+' : SqueezeDetPlus,
                        'resnet50' : ResNet50ConvDet }
@@ -92,10 +89,11 @@ def train(mcfg):
     assert mcfg.base_net in available_models.keys() , \
         'Selected neural net architecture not supported: {}'.format(mcfg.base_net)
 
-    #mc = nexarear_squeezeDet_config()
-    #mc.PRETRAINED_MODEL_PATH = FLAGS.pretrained_model_path
-    model = available_models[mcfg.base_net](mcfg,mcfg.gpu_id)
+    model = available_models[mcfg.base_net](mcfg)
     imdb = available_datasets[mcfg.dataset.DATASET](model.ANCHOR_BOX,mcfg)
+
+    BATCH_SIZE = mcfg.train.BATCH_SIZE
+    train_dir = mcfg.train.CHECKPOINT_DIR
 
     N_ANCHORS = len(model.ANCHOR_BOX)
     N_CLASSES = len(mcfg.dataset.CLASS_NAMES)
@@ -104,7 +102,6 @@ def train(mcfg):
     MAX_STEPS = mcfg.train.MAX_STEPS
     CHECKPOINT_STEP = mcfg.train.CHECKPOINT_STEP
     SUMMARY_STEP = mcfg.train.SUMMARY_STEP
-
 
     # save model size, flops, activations by layers
     with open(os.path.join(train_dir, 'model_metrics.txt'), 'w') as f:
