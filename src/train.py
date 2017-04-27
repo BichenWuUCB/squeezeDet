@@ -56,6 +56,9 @@ tf.app.flags.DEFINE_string('pred_json_folder', '/opt/data/NEXAREAR/pred_labels',
                             """Directory where to write pred jsons """)
 tf.app.flags.DEFINE_float('iou_threshold', 0.5,
                             """IOU threshold""")
+tf.app.flags.DEFINE_integer('max_model_to_keep', 100,
+                            """Max Number of models checkpoints to keep.""")
+
 
 def _draw_box(im, box_list, label_list, color=(0,255,0), cdict=None, form='center'):
   assert form == 'center' or form == 'diagonal', \
@@ -164,8 +167,8 @@ def train():
     model_metric_fname = os.path.join(FLAGS.train_dir, 'model_metrics.txt')
     print('Model metric filename {}'.format(model_metric_fname))
     # dump configuration
-    with open(os.path.join(FLAGS.train_dir, 'model_training_configuration.txt'), 'w') as conf_dump_file:
-        json.dump(mc, conf_dump_file)
+    #with open(os.path.join(FLAGS.train_dir, 'model_training_configuration.txt'), 'w') as conf_dump_file:
+    #    json.dump(mc, conf_dump_file)
 
     # save model size, flops, activations by layers
     with open(model_metric_fname, 'w') as f:
@@ -192,7 +195,7 @@ def train():
       print ('Model statistics saved to {}.'.format(
       os.path.join(FLAGS.train_dir, 'model_metrics.txt')))
 
-    saver = tf.train.Saver(tf.global_variables(), max_to_keep=MAX_MODEL_TO_KEEP)
+    saver = tf.train.Saver(tf.global_variables(), max_to_keep=FLAGS.max_model_to_keep) #todo Roi
     summary_op = tf.summary.merge_all()
     init = tf.global_variables_initializer()
 
@@ -280,19 +283,17 @@ def train():
       }
 
       if step % FLAGS.summary_step == 0:
-        test_set = imdb.get_test_set()
+        img_batch, scales_batch, img_fnames_batch = imdb.read_test_image_batch()
         ground_truth_boxes_directory = imdb.get_label_path()
         images_directory = imdb.get_images_path()
         if os.path.isdir(FLAGS.pred_json_folder):
             shutil.rmtree(FLAGS.pred_json_folder)
         os.makedirs(FLAGS.pred_json_folder)
-        print('Processing {} test images'.format(len(test_set)))
-        for test_image_basename in test_set:
-            test_image_fname = os.path.join(images_directory,test_image_basename)
-            compute_time, json_dict_res = infer_bounding_boxes(model, sess, test_image_fname, FLAGS.pred_json_folder)
-
+        print('Processing {} test images'.format(len(img_batch)))
+        compute_time = infer_bounding_boxes_on_image_batch(model, sess, img_batch, img_fnames_batch, FLAGS.pred_json_folder)
+        print('Processing time {}'.format(compute_time))
         # extract score
-        results = iou_engine.get_bbox_average_iou_evaulation(ground_truth_boxes_directory, FLAGS.pred_json_folder, imdb.get_classes(), FLAGS.iou_threshold , in_images_dir=None, out_images_and_boxes_dir=None)
+        results = iou_engine.get_bbox_average_iou_evaulation(ground_truth_boxes_directory, FLAGS.pred_json_folder, imdb.classes, FLAGS.iou_threshold , in_images_dir=None, out_images_and_boxes_dir=None)
         print('Model Eval Score {}'.format(results))
 
         model_eval_summary_feed_dict = {num_of_detections:results['num_of_detections'],precision : results['precision'],localization_error_precentage:results['localization_error_precentage'],
@@ -435,7 +436,78 @@ def infer_bounding_boxes(model, sess, image_file, pred_json_folder):
     json_file = open(json_fname, 'w')
     json.dump(json_dict_res, json_file, indent=4, sort_keys=True)
     json_file.close()
-    return compute_time, json_dict_res
+    return compute_time
+
+def infer_bounding_boxes_on_image_batch(model, sess, img_batch, img_fnames_batch, pred_json_folder):
+
+    t_start = time.time()
+
+    # Detect
+    det_boxes, det_probs, det_class = sess.run(
+        [model.det_boxes, model.det_probs, model.det_class],
+        feed_dict={model.image_input: img_batch, model.keep_prob: 1.0})
+
+        # Filter
+    print('number of infered images in iter {}'.format(len(img_batch)))
+    for ii_img, img in enumerate(img_batch):
+
+        width = img.shape[1]
+        height = img.shape[0]
+
+        DW = float(float(width) / float(model.mc.IMAGE_WIDTH))
+        DH = float(float(height) / float(model.mc.IMAGE_HEIGHT))
+
+        final_boxes, final_probs, final_class = model.filter_prediction(
+            det_boxes[ii_img], det_probs[ii_img], det_class[ii_img])
+
+        compute_time = time.time() - t_start
+
+        keep_idx = [idx for idx in range(len(final_probs)) \
+                    if final_probs[idx] > model.mc.PLOT_PROB_THRESH]
+        final_boxes = [final_boxes[idx] for idx in keep_idx]
+        final_probs = [final_probs[idx] for idx in keep_idx]
+        final_class = [final_class[idx] for idx in keep_idx]
+
+        box_list = final_boxes
+        label_list = [model.mc.CLASS_NAMES[idx] + ': (%.2f)' % prob \
+             for idx, prob in zip(final_class, final_probs)]
+
+        all_out_boxes = []
+        for bbox, label in zip(box_list, label_list):
+            cx, cy, w, h = bbox
+            xmin_sdet = cx - w / 2
+            ymin_sdet = cy - h / 2
+            xmax_sdet = cx + w / 2
+            ymax_sdet = cy + h / 2
+
+            xmin = float(xmin_sdet * DW)
+            ymin = float(ymin_sdet * DH)
+            xmax = float(xmax_sdet * DW)
+            ymax = float(ymax_sdet * DH)
+
+            class_label = label.split(':')[0]  # text before "CLASS: (PROB)"
+
+            out_box = { "type": "RECT",
+                        "label": class_label,
+                        "position": "UNDEFINED",
+                        "bounding_box_with_pose": {  "p0": { 'x' : xmin, 'y' : ymin},
+                                                     "p1": { 'x' : xmax, 'y' : ymax},
+                                                     "width": float(w*DW),
+                                                     "height": float(h*DH),
+                                                     "aspect_ratio": float(w*DW)/float(h*DH),
+                                                     "pose": "REAR"
+                                                     }
+                    }
+            all_out_boxes.append(out_box)
+        img_basename = img_fnames_batch[ii_img]
+        json_dict_res = {'img_filename': img_basename, 'bounding_box_object_annotation': all_out_boxes}
+        json_fname = os.path.join(pred_json_folder, img_basename + JSON_PREFIX)
+        json_file = open(json_fname, 'w')
+        json.dump(json_dict_res, json_file, indent=4, sort_keys=True)
+        json_file.close()
+    return compute_time
+
+
 
 def main(argv=None):  # pylint: disable=unused-argument
   if tf.gfile.Exists(FLAGS.train_dir):

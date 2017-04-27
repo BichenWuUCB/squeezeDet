@@ -17,7 +17,7 @@ def nexarear_squeezeDet_config():
 
   mc.IMAGE_WIDTH           = 1280
   mc.IMAGE_HEIGHT          = 720
-  mc.BATCH_SIZE            = 1
+  mc.BATCH_SIZE            = 20
 
   mc.WEIGHT_DECAY          = 0.0001
   mc.LEARNING_RATE         = 0.01

@@ -35,14 +35,14 @@ class nexarear(imdb):
     ## batch reader ##
     self._perm_idx = None
     self._cur_idx = 0
+    self._perm_test_idx = None
+    self._cur_test_idx = 0
 
     seed = 414
     self._shuffle_image_idx(seed=seed)
+    self._shuffle_test_image_idx(seed=seed)
 
     self._eval_tool = './src/dataset/kitti-eval/cpp/evaluate_object'
-
-  def get_classes(self):
-    return self._classes
 
   def get_test_set(self):
     return self._test_image_idx
