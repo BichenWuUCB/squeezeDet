@@ -74,32 +74,22 @@ class ModelSkeleton:
   def __init__(self, mc):
     self.mc = mc
 
+    self.ANCHOR_BOX = None
+    self.ANCHORS = 0
+
+    BATCH_SIZE = self.mc.train.BATCH_SIZE
+    IMAGE_HEIGHT = self.mc.dataset.IMAGE_HEIGHT
+    IMAGE_WIDTH = self.mc.dataset.IMAGE_WIDTH
+
+
     # image batch input
     self.image_input = tf.placeholder(
-        tf.float32, [mc.BATCH_SIZE, mc.IMAGE_HEIGHT, mc.IMAGE_WIDTH, 3],
+        tf.float32, [BATCH_SIZE, IMAGE_HEIGHT, IMAGE_WIDTH, 3],
         name='image_input'
     )
     # a scalar tensor in range (0, 1]. Usually set to 0.5 in training phase and
     # 1.0 in evaluation phase
     self.keep_prob = tf.placeholder(tf.float32, name='keep_prob')
-    # A tensor where an element is 1 if the corresponding box is "responsible"
-    # for detection an object and 0 otherwise.
-    self.input_mask = tf.placeholder(
-        tf.float32, [mc.BATCH_SIZE, mc.ANCHORS, 1], name='box_mask')
-    # Tensor used to represent bounding box deltas.
-    self.box_delta_input = tf.placeholder(
-        tf.float32, [mc.BATCH_SIZE, mc.ANCHORS, 4], name='box_delta_input')
-    # Tensor used to represent bounding box coordinates.
-    self.box_input = tf.placeholder(
-        tf.float32, [mc.BATCH_SIZE, mc.ANCHORS, 4], name='box_input')
-    # Tensor used to represent labels
-    self.labels = tf.placeholder(
-        tf.float32, [mc.BATCH_SIZE, mc.ANCHORS, mc.CLASSES], name='labels')
-    # Tensor representing the IOU between predicted bbox and gt bbox
-    self.ious = tf.Variable(
-        initial_value=np.zeros((mc.BATCH_SIZE, mc.ANCHORS)), trainable=False,
-        name='iou', dtype=tf.float32
-    )
 
     # model parameters
     self.model_params = []
@@ -110,8 +100,73 @@ class ModelSkeleton:
     self.flop_counter = [] # array of tuple of layer name, flop number
     # activation counter
     self.activation_counter = [] # array of tuple of layer name, output activations
-    self.activation_counter.append(('input', mc.IMAGE_WIDTH*mc.IMAGE_HEIGHT*3))
+    self.activation_counter.append(('input', IMAGE_WIDTH*IMAGE_HEIGHT*3))
 
+  def _set_anchors_and_placeholders(self,preds):
+      preds_shape = preds.get_shape()
+
+      W = int(preds_shape[2])
+      H = int(preds_shape[1])
+      B = self.mc.anchor_boxes.ANCHOR_PER_GRID
+      IMAGE_HEIGHT = self.mc.dataset.IMAGE_HEIGHT
+      IMAGE_WIDTH = self.mc.dataset.IMAGE_WIDTH
+
+      anchor_shapes = np.reshape( [np.array(self.mc.anchor_boxes.ANCHOR_BOXES)] * H * W, (H, W, B, 2))
+
+      center_x = np.reshape(
+          np.transpose(
+              np.reshape(
+                  np.array([np.arange(1, W + 1) * float(IMAGE_WIDTH) / (W + 1)] * H * B),
+                  (B, H, W)
+              ),
+              (1, 2, 0)
+          ),
+          (H, W, B, 1)
+      )
+
+      center_y = np.reshape(
+          np.transpose(
+              np.reshape(
+                  np.array([np.arange(1, H + 1) * float(IMAGE_HEIGHT) / (H + 1)] * W * B),
+                  (B, W, H)
+              ),
+              (2, 1, 0)
+          ),
+          (H, W, B, 1)
+      )
+
+      self.ANCHOR_BOX = np.reshape(
+          np.concatenate((center_x, center_y, anchor_shapes), axis=3),
+          (-1, 4)
+      )
+
+      self.N_ANCHORS = len(self.ANCHOR_BOX)
+
+      self._add_anchor_related_placeholders()
+
+  def _add_anchor_related_placeholders(self):
+      mc = self.mc
+
+      BATCH_SIZE = self.mc.train.BATCH_SIZE
+
+      # A tensor where an element is 1 if the corresponding box is "responsible"
+      # for detection an object and 0 otherwise.
+      self.input_mask = tf.placeholder(
+          tf.float32, [BATCH_SIZE, self.N_ANCHORS, 1], name='box_mask')
+      # Tensor used to represent bounding box deltas.
+      self.box_delta_input = tf.placeholder(
+          tf.float32, [BATCH_SIZE, self.N_ANCHORS, 4], name='box_delta_input')
+      # Tensor used to represent bounding box coordinates.
+      self.box_input = tf.placeholder(
+          tf.float32, [BATCH_SIZE, self.N_ANCHORS, 4], name='box_input')
+      # Tensor used to represent labels
+      self.labels = tf.placeholder(
+          tf.float32, [BATCH_SIZE, self.N_ANCHORS, mc.dataset.N_CLASSES], name='labels')
+      # Tensor representing the IOU between predicted bbox and gt bbox
+      self.ious = tf.Variable(
+          initial_value=np.zeros((BATCH_SIZE, self.N_ANCHORS)), trainable=False,
+          name='iou', dtype=tf.float32
+      )
 
   def _add_forward_graph(self):
     """NN architecture specification."""
@@ -121,28 +176,35 @@ class ModelSkeleton:
     """Interpret NN output."""
     mc = self.mc
 
+    BATCH_SIZE = mc.train.BATCH_SIZE
+    IMAGE_HEIGHT = mc.dataset.IMAGE_HEIGHT
+    IMAGE_WIDTH = mc.dataset.IMAGE_WIDTH
+    EXP_THRESH = mc.system.EXP_THRESH
+    EPSILON = mc.system.EPSILON
+
     with tf.variable_scope('interpret_output') as scope:
       preds = self.preds
+      self._set_anchors_and_placeholders(preds)
 
       # probability
-      num_class_probs = mc.ANCHOR_PER_GRID*mc.CLASSES
+      num_class_probs = self.mc.anchor_boxes.ANCHOR_PER_GRID*mc.dataset.N_CLASSES
       self.pred_class_probs = tf.reshape(
           tf.nn.softmax(
               tf.reshape(
                   preds[:, :, :, :num_class_probs],
-                  [-1, mc.CLASSES]
+                  [-1, mc.dataset.N_CLASSES]
               )
           ),
-          [mc.BATCH_SIZE, mc.ANCHORS, mc.CLASSES],
+          [BATCH_SIZE, self.N_ANCHORS, mc.dataset.N_CLASSES],
           name='pred_class_probs'
       )
       
       # confidence
-      num_confidence_scores = mc.ANCHOR_PER_GRID+num_class_probs
+      num_confidence_scores = self.mc.anchor_boxes.ANCHOR_PER_GRID+num_class_probs
       self.pred_conf = tf.sigmoid(
           tf.reshape(
               preds[:, :, :, num_class_probs:num_confidence_scores],
-              [mc.BATCH_SIZE, mc.ANCHORS]
+              [BATCH_SIZE, self.N_ANCHORS]
           ),
           name='pred_confidence_score'
       )
@@ -150,7 +212,7 @@ class ModelSkeleton:
       # bbox_delta
       self.pred_box_delta = tf.reshape(
           preds[:, :, :, num_confidence_scores:],
-          [mc.BATCH_SIZE, mc.ANCHORS, 4],
+          [BATCH_SIZE, self.N_ANCHORS, 4],
           name='bbox_delta'
       )
 
@@ -162,20 +224,20 @@ class ModelSkeleton:
         delta_x, delta_y, delta_w, delta_h = tf.unstack(
             self.pred_box_delta, axis=2)
 
-        anchor_x = mc.ANCHOR_BOX[:, 0]
-        anchor_y = mc.ANCHOR_BOX[:, 1]
-        anchor_w = mc.ANCHOR_BOX[:, 2]
-        anchor_h = mc.ANCHOR_BOX[:, 3]
+        anchor_x = self.ANCHOR_BOX[:, 0]
+        anchor_y = self.ANCHOR_BOX[:, 1]
+        anchor_w = self.ANCHOR_BOX[:, 2]
+        anchor_h = self.ANCHOR_BOX[:, 3]
 
         box_center_x = tf.identity(
             anchor_x + delta_x * anchor_w, name='bbox_cx')
         box_center_y = tf.identity(
             anchor_y + delta_y * anchor_h, name='bbox_cy')
         box_width = tf.identity(
-            anchor_w * util.safe_exp(delta_w, mc.EXP_THRESH),
+            anchor_w * util.safe_exp(delta_w, EXP_THRESH),
             name='bbox_width')
         box_height = tf.identity(
-            anchor_h * util.safe_exp(delta_h, mc.EXP_THRESH),
+            anchor_h * util.safe_exp(delta_h, EXP_THRESH),
             name='bbox_height')
 
         self._activation_summary(delta_x, 'delta_x')
@@ -195,19 +257,19 @@ class ModelSkeleton:
         # The max x position is mc.IMAGE_WIDTH - 1 since we use zero-based
         # pixels. Same for y.
         xmins = tf.minimum(
-            tf.maximum(0.0, xmins), mc.IMAGE_WIDTH-1.0, name='bbox_xmin')
+            tf.maximum(0.0, xmins), IMAGE_WIDTH-1.0, name='bbox_xmin')
         self._activation_summary(xmins, 'box_xmin')
 
         ymins = tf.minimum(
-            tf.maximum(0.0, ymins), mc.IMAGE_HEIGHT-1.0, name='bbox_ymin')
+            tf.maximum(0.0, ymins), IMAGE_HEIGHT-1.0, name='bbox_ymin')
         self._activation_summary(ymins, 'box_ymin')
 
         xmaxs = tf.maximum(
-            tf.minimum(mc.IMAGE_WIDTH-1.0, xmaxs), 0.0, name='bbox_xmax')
+            tf.minimum(IMAGE_WIDTH-1.0, xmaxs), 0.0, name='bbox_xmax')
         self._activation_summary(xmaxs, 'box_xmax')
 
         ymaxs = tf.maximum(
-            tf.minimum(mc.IMAGE_HEIGHT-1.0, ymaxs), 0.0, name='bbox_ymax')
+            tf.minimum(IMAGE_HEIGHT-1.0, ymaxs), 0.0, name='bbox_ymax')
         self._activation_summary(ymaxs, 'box_ymax')
 
         self.det_boxes = tf.transpose(
@@ -235,8 +297,8 @@ class ModelSkeleton:
 
           union = w1*h1 + w2*h2 - intersection
 
-        return intersection/(union+mc.EPSILON) \
-            * tf.reshape(self.input_mask, [mc.BATCH_SIZE, mc.ANCHORS])
+        return intersection/(union+EPSILON) \
+            * tf.reshape(self.input_mask, [BATCH_SIZE, self.N_ANCHORS])
 
       self.ious = self.ious.assign(
           _tensor_iou(
@@ -251,7 +313,7 @@ class ModelSkeleton:
 
       probs = tf.multiply(
           self.pred_class_probs,
-          tf.reshape(self.pred_conf, [mc.BATCH_SIZE, mc.ANCHORS, 1]),
+          tf.reshape(self.pred_conf, [BATCH_SIZE, self.N_ANCHORS, 1]),
           name='final_class_prob'
       )
 
@@ -264,26 +326,34 @@ class ModelSkeleton:
     """Define the loss operation."""
     mc = self.mc
 
+    BATCH_SIZE = mc.train.BATCH_SIZE
+    LOSS_COEF_CLASS = mc.optimization.LOSS_COEF_CLASS
+    LOSS_COEF_CONF_POS = mc.optimization.LOSS_COEF_CONF_POS
+    LOSS_COEF_CONF_NEG = mc.optimization.LOSS_COEF_CONF_NEG
+    LOSS_COEF_BBOX = mc.optimization.LOSS_COEF_BBOX
+    EPSILON = mc.system.EPSILON
+    N_ANCHORS = self.N_ANCHORS
+
     with tf.variable_scope('class_regression') as scope:
       # cross-entropy: q * -log(p) + (1-q) * -log(1-p)
       # add a small value into log to prevent blowing up
       self.class_loss = tf.truediv(
           tf.reduce_sum(
-              (self.labels*(-tf.log(self.pred_class_probs+mc.EPSILON))
-               + (1-self.labels)*(-tf.log(1-self.pred_class_probs+mc.EPSILON)))
-              * self.input_mask * mc.LOSS_COEF_CLASS),
+              (self.labels*(-tf.log(self.pred_class_probs+EPSILON))
+               + (1-self.labels)*(-tf.log(1-self.pred_class_probs+EPSILON)))
+              * self.input_mask * LOSS_COEF_CLASS),
           self.num_objects,
           name='class_loss'
       )
       tf.add_to_collection('losses', self.class_loss)
 
     with tf.variable_scope('confidence_score_regression') as scope:
-      input_mask = tf.reshape(self.input_mask, [mc.BATCH_SIZE, mc.ANCHORS])
+      input_mask = tf.reshape(self.input_mask, [BATCH_SIZE, N_ANCHORS])
       self.conf_loss = tf.reduce_mean(
           tf.reduce_sum(
               tf.square((self.ious - self.pred_conf)) 
-              * (input_mask*mc.LOSS_COEF_CONF_POS/self.num_objects
-                 +(1-input_mask)*mc.LOSS_COEF_CONF_NEG/(mc.ANCHORS-self.num_objects)),
+              * (input_mask*LOSS_COEF_CONF_POS/self.num_objects
+                 +(1-input_mask)*LOSS_COEF_CONF_NEG/(N_ANCHORS-self.num_objects)),
               reduction_indices=[1]
           ),
           name='confidence_loss'
@@ -294,7 +364,7 @@ class ModelSkeleton:
     with tf.variable_scope('bounding_box_regression') as scope:
       self.bbox_loss = tf.truediv(
           tf.reduce_sum(
-              mc.LOSS_COEF_BBOX * tf.square(
+              LOSS_COEF_BBOX * tf.square(
                   self.input_mask*(self.pred_box_delta-self.box_delta_input))),
           self.num_objects,
           name='bbox_loss'
@@ -308,23 +378,29 @@ class ModelSkeleton:
     """Define the training operation."""
     mc = self.mc
 
+    LEARNING_RATE = mc.optimization.LEARNING_RATE
+    DECAY_STEPS = mc.optimization.DECAY_STEPS
+    LR_DECAY_FACTOR = mc.optimization.LEARNING_RATE
+    MOMENTUM = mc.optimization.MOMENTUM
+    MAX_GRAD_NORM = mc.optimization.MAX_GRAD_NORM
+
     self.global_step = tf.Variable(0, name='global_step', trainable=False)
-    lr = tf.train.exponential_decay(mc.LEARNING_RATE,
+    lr = tf.train.exponential_decay(LEARNING_RATE,
                                     self.global_step,
-                                    mc.DECAY_STEPS,
-                                    mc.LR_DECAY_FACTOR,
+                                    DECAY_STEPS,
+                                    LR_DECAY_FACTOR,
                                     staircase=True)
 
     tf.summary.scalar('learning_rate', lr)
 
     _add_loss_summaries(self.loss)
 
-    opt = tf.train.MomentumOptimizer(learning_rate=lr, momentum=mc.MOMENTUM)
+    opt = tf.train.MomentumOptimizer(learning_rate=lr, momentum=MOMENTUM)
     grads_vars = opt.compute_gradients(self.loss, tf.trainable_variables())
 
     with tf.variable_scope('clip_gradient') as scope:
       for i, (grad, var) in enumerate(grads_vars):
-        grads_vars[i] = (tf.clip_by_norm(grad, mc.MAX_GRAD_NORM), var)
+        grads_vars[i] = (tf.clip_by_norm(grad, MAX_GRAD_NORM), var)
 
     apply_gradient_op = opt.apply_gradients(grads_vars, global_step=self.global_step)
 
@@ -341,13 +417,18 @@ class ModelSkeleton:
   def _add_viz_graph(self):
     """Define the visualization operation."""
     mc = self.mc
+
+    BATCH_SIZE = mc.train.BATCH_SIZE
+    IMAGE_HEIGHT = mc.dataset.IMAGE_HEIGHT
+    IMAGE_WIDTH = mc.dataset.IMAGE_WIDTH
+
     self.image_to_show = tf.placeholder(
-        tf.float32, [None, mc.IMAGE_HEIGHT, mc.IMAGE_WIDTH, 3],
+        tf.float32, [None, IMAGE_HEIGHT, IMAGE_WIDTH, 3],
         name='image_to_show'
     )
     self.viz_op = tf.summary.image('sample_detection_results',
         self.image_to_show, collections='image_summary',
-        max_outputs=mc.BATCH_SIZE)
+        max_outputs=BATCH_SIZE)
 
   def _conv_bn_layer(
       self, inputs, conv_param_name, bn_param_name, scale_param_name, filters,
@@ -379,7 +460,7 @@ class ModelSkeleton:
     with tf.variable_scope(conv_param_name) as scope:
       channels = inputs.get_shape()[3]
 
-      if mc.LOAD_PRETRAINED_MODEL:
+      if mc.initialization.LOAD_PRETRAINED_MODEL:
         cw = self.caffemodel_weight
         kernel_val = np.transpose(cw[conv_param_name][0], [2,3,1,0])
         if conv_with_bias:
@@ -402,7 +483,7 @@ class ModelSkeleton:
       # shape [h, w, in, out]
       kernel = _variable_with_weight_decay(
           'kernels', shape=[size, size, int(channels), filters],
-          wd=mc.WEIGHT_DECAY, initializer=kernel_val, trainable=(not freeze))
+          wd=mc.optimization.WEIGHT_DECAY, initializer=kernel_val, trainable=(not freeze))
       self.model_params += [kernel]
       if conv_with_bias:
         biases = _variable_on_device('biases', [filters], bias_val,
@@ -424,7 +505,7 @@ class ModelSkeleton:
 
       conv = tf.nn.batch_normalization(
           conv, mean=mean, variance=var, offset=beta, scale=gamma,
-          variance_epsilon=mc.BATCH_NORM_EPSILON, name='batch_norm')
+          variance_epsilon=mc.system.BATCH_NORM_EPSILON, name='batch_norm')
 
       self.model_size_counter.append(
           (conv_param_name, (1+size*size*int(channels))*filters)
@@ -468,7 +549,7 @@ class ModelSkeleton:
 
     mc = self.mc
     use_pretrained_param = False
-    if mc.LOAD_PRETRAINED_MODEL:
+    if mc.initialization.LOAD_PRETRAINED_MODEL:
       cw = self.caffemodel_weight
       if layer_name in cw:
         kernel_val = np.transpose(cw[layer_name][0], [2,3,1,0])
@@ -508,7 +589,7 @@ class ModelSkeleton:
 
       kernel = _variable_with_weight_decay(
           'kernels', shape=[size, size, int(channels), filters],
-          wd=mc.WEIGHT_DECAY, initializer=kernel_init, trainable=(not freeze))
+          wd=mc.optimization.WEIGHT_DECAY, initializer=kernel_init, trainable=(not freeze))
 
       biases = _variable_on_device('biases', [filters], bias_init, 
                                 trainable=(not freeze))
@@ -685,14 +766,18 @@ class ModelSkeleton:
       final_cls_idx: array of filtered class indices
     """
     mc = self.mc
+    N_CLASSES = mc.dataset.N_CLASSES
+    TOP_N_DETECTION = mc.post_processing.TOP_N_DETECTION
+    PROB_THRESH = mc.post_processing.PROB_THRESH
+    NMS_THRESH = mc.post_processing.NMS_THRESH
 
-    if mc.TOP_N_DETECTION < len(probs) and mc.TOP_N_DETECTION > 0:
-      order = probs.argsort()[:-mc.TOP_N_DETECTION-1:-1]
+    if TOP_N_DETECTION < len(probs) and TOP_N_DETECTION > 0:
+      order = probs.argsort()[:-TOP_N_DETECTION-1:-1]
       probs = probs[order]
       boxes = boxes[order]
       cls_idx = cls_idx[order]
     else:
-      filtered_idx = np.nonzero(probs>mc.PROB_THRESH)[0]
+      filtered_idx = np.nonzero(probs>PROB_THRESH)[0]
       probs = probs[filtered_idx]
       boxes = boxes[filtered_idx]
       cls_idx = cls_idx[filtered_idx]
@@ -701,9 +786,9 @@ class ModelSkeleton:
     final_probs = []
     final_cls_idx = []
 
-    for c in range(mc.CLASSES):
+    for c in range(N_CLASSES):
       idx_per_class = [i for i in range(len(probs)) if cls_idx[i] == c]
-      keep = util.nms(boxes[idx_per_class], probs[idx_per_class], mc.NMS_THRESH)
+      keep = util.nms(boxes[idx_per_class], probs[idx_per_class], NMS_THRESH)
       for i in range(len(keep)):
         if keep[i]:
           final_boxes.append(boxes[idx_per_class[i]])
