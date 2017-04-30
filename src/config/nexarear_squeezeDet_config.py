@@ -45,7 +45,7 @@ def nexarear_squeezeDet_config():
   mc.ANCHORS               = len(mc.ANCHOR_BOX)
   mc.ANCHOR_PER_GRID       = 9
 
-  mc.PERCENTAGE_OF_TEST_SET = 0.005
+  mc.PERCENTAGE_OF_TEST_SET = 0.2
   mc.RANDOM_SEED_TEST_TRAIN_SPLIT = 314
 
   return mc
