@@ -59,6 +59,9 @@ def get_model_config(cfg_file):
     cfg = json.load(infile)
   mconfig = edict(cfg)
 
+  if 'LOAD_PRETRAINED_MODEL' not in mconfig.initialization:
+    mconfig.initialization.LOAD_PRETRAINED_MODEL = False
+
   # number of categories to classify
   mconfig.dataset.N_CLASSES = len(mconfig.dataset.CLASS_NAMES)
   mconfig.anchor_boxes.ANCHOR_PER_GRID = 9
