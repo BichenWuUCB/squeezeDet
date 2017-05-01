@@ -119,7 +119,7 @@ def train():
 
   with tf.Graph().as_default():
 
-    assert FLAGS.net == 'vgg16' or FLAGS.net == 'resnet50' or FLAGS.net == 'squeezeDet_nexarear' \
+    assert FLAGS.net == 'vgg16' or FLAGS.net == 'resnet50' \
         or FLAGS.net == 'squeezeDet' or FLAGS.net == 'squeezeDet+', \
         'Selected neural net architecture not supported: {}'.format(FLAGS.net)
 
@@ -140,25 +140,14 @@ def train():
           mc = kitti_squeezeDetPlus_config()
           mc.PRETRAINED_MODEL_PATH = FLAGS.pretrained_model_path
           model = SqueezeDetPlus(mc, FLAGS.gpu)
-
         imdb = kitti(FLAGS.image_set, FLAGS.data_path, mc)
     elif FLAGS.dataset == 'NEXAREAR':
-        assert FLAGS.net == 'squeezeDet' or FLAGS.net == 'squeezeDet+' or FLAGS.net == 'resnet50' or FLAGS.net == 'vgg16' or FLAGS.net == 'squeezeDet_nexarear', \
+        assert FLAGS.net == 'squeezeDet' or FLAGS.net == 'squeezeDet+' or FLAGS.net == 'resnet50' or FLAGS.net == 'vgg16', \
             'Currently only the squeezeDet model is supported for the NEXAREAR dataset'
         if FLAGS.net == 'squeezeDet':
           mc = nexarear_squeezeDet_config()
           mc.PRETRAINED_MODEL_PATH = FLAGS.pretrained_model_path
           model = SqueezeDet(mc, FLAGS.gpu)
-        elif FLAGS.net == 'squeezeDet_nexarear':
-          mc = nexarear_squeezeDet_config()
-          mc.LOAD_PRETRAINED_MODEL = False  # model parameters will be restored from checkpoint
-          checkpoint_file = '/opt/squeezeDet/data/model_checkpoints/squeezeDet_nexarear/model.ckpt-112000'
-          print(checkpoint_file)
-          model = SqueezeDet(mc, FLAGS.gpu)
-          saver = tf.train.Saver(model.model_params)
-          sess = tf.Session(config=tf.ConfigProto(allow_soft_placement=True))
-          saver.restore(sess, checkpoint_file)
-
         elif FLAGS.net == 'squeezeDet+':
           mc = nexarear_squeezeDetPlus_config()
           mc.PRETRAINED_MODEL_PATH = FLAGS.pretrained_model_path
@@ -172,7 +161,6 @@ def train():
           mc.PRETRAINED_MODEL_PATH = FLAGS.pretrained_model_path
           model = VGG16ConvDet(mc, FLAGS.gpu)
         imdb = nexarear(FLAGS.image_set, FLAGS.data_path, mc)
-
     if not os.path.isdir(FLAGS.train_dir):
       print(os.makedirs(FLAGS.train_dir))
     model_metric_fname = os.path.join(FLAGS.train_dir, 'model_metrics.txt')
