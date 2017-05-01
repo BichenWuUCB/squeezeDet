@@ -17,8 +17,8 @@ import tensorflow as tf
 from nn_skeleton import ModelSkeleton
 
 class SqueezeDetPlus(ModelSkeleton):
-  def __init__(self, mc, gpu_id):
-    with tf.device('/gpu:{}'.format(gpu_id)):
+  def __init__(self, mc):
+    with tf.device('/gpu:{}'.format(mc.gpu_id)):
       ModelSkeleton.__init__(self, mc)
 
       self._add_forward_graph()
@@ -31,11 +31,11 @@ class SqueezeDetPlus(ModelSkeleton):
     """NN architecture."""
 
     mc = self.mc
-    if mc.LOAD_PRETRAINED_MODEL:
-      assert tf.gfile.Exists(mc.PRETRAINED_MODEL_PATH), \
+    if mc.initialization.LOAD_PRETRAINED_MODEL:
+      assert tf.gfile.Exists(mc.initialization.PRETRAINED_MODEL_PATH), \
           'Cannot find pretrained model at the given path:' \
-          '  {}'.format(mc.PRETRAINED_MODEL_PATH)
-      self.caffemodel_weight = joblib.load(mc.PRETRAINED_MODEL_PATH)
+          '  {}'.format(mc.initialization.PRETRAINED_MODEL_PATH)
+      self.caffemodel_weight = joblib.load(mc.initialization.PRETRAINED_MODEL_PATH)
 
     conv1 = self._conv_layer(
         'conv1', self.image_input, filters=96, size=7, stride=2,
@@ -73,7 +73,7 @@ class SqueezeDetPlus(ModelSkeleton):
         'fire11', fire10, s1x1=384, e1x1=256, e3x3=256, freeze=False)
     dropout11 = tf.nn.dropout(fire11, self.keep_prob, name='drop11')
 
-    num_output = mc.ANCHOR_PER_GRID * (mc.CLASSES + 1 + 4)
+    num_output = mc.anchor_boxes.ANCHOR_PER_GRID * (mc.dataset.N_CLASSES + 1 + 4)
     self.preds = self._conv_layer(
         'conv12', dropout11, filters=num_output, size=3, stride=1,
         padding='SAME', xavier=False, relu=False, stddev=0.0001)

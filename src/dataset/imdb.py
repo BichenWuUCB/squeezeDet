@@ -14,7 +14,7 @@ from utils.util import iou, batch_iou
 class imdb(object):
   """Image database."""
 
-  def __init__(self, name, mc):
+  def __init__(self, name, ALL_ANCHOR_BOXES, mc):
     self._name = name
     self._classes = []
     self._image_set = []
@@ -22,7 +22,9 @@ class imdb(object):
     self._test_image_idx = []
     self._data_root_path = []
     self._rois = {}
+
     self.mc = mc
+    self.ALL_ANCHOR_BOXES = ALL_ANCHOR_BOXES
 
     # batch reader
     self._perm_idx = None
@@ -166,20 +168,31 @@ class imdb(object):
           [cx, cy, w, h]
     """
     mc = self.mc
+    BATCH_SIZE = mc.train.BATCH_SIZE
+
+    DATA_AUGMENTATION = mc.pre_processing.data_augmentation_in_train.DATA_AUGMENTATION
+    DRIFT_X = mc.pre_processing.data_augmentation_in_train.DRIFT_X
+    DRIFT_Y = mc.pre_processing.data_augmentation_in_train.DRIFT_Y
+
+    IMAGE_HEIGHT = self.mc.dataset.IMAGE_HEIGHT
+    IMAGE_WIDTH = self.mc.dataset.IMAGE_WIDTH
+
+    BGR_MEANS = np.array(mc.pre_processing.BGR_MEANS)
+
 
     if shuffle:
-      if self._cur_idx + mc.BATCH_SIZE >= len(self._image_idx):
+      if self._cur_idx + BATCH_SIZE >= len(self._image_idx):
         self._shuffle_image_idx()
-      batch_idx = self._perm_idx[self._cur_idx:self._cur_idx+mc.BATCH_SIZE]
-      self._cur_idx += mc.BATCH_SIZE
+      batch_idx = self._perm_idx[self._cur_idx:self._cur_idx+BATCH_SIZE]
+      self._cur_idx += BATCH_SIZE
     else:
-      if self._cur_idx + mc.BATCH_SIZE >= len(self._image_idx):
+      if self._cur_idx + BATCH_SIZE >= len(self._image_idx):
         batch_idx = self._image_idx[self._cur_idx:] \
-            + self._image_idx[:self._cur_idx + mc.BATCH_SIZE-len(self._image_idx)]
-        self._cur_idx += mc.BATCH_SIZE - len(self._image_idx)
+            + self._image_idx[:self._cur_idx + BATCH_SIZE-len(self._image_idx)]
+        self._cur_idx += BATCH_SIZE - len(self._image_idx)
       else:
-        batch_idx = self._image_idx[self._cur_idx:self._cur_idx+mc.BATCH_SIZE]
-        self._cur_idx += mc.BATCH_SIZE
+        batch_idx = self._image_idx[self._cur_idx:self._cur_idx+BATCH_SIZE]
+        self._cur_idx += BATCH_SIZE
 
     image_per_batch = []
     label_per_batch = []
@@ -196,7 +209,7 @@ class imdb(object):
     for idx in batch_idx:
       # load the image
       im = cv2.imread(self._image_path_at(idx)).astype(np.float32, copy=False)
-      im -= mc.BGR_MEANS
+      im -= BGR_MEANS
       orig_h, orig_w, _ = [float(v) for v in im.shape]
 
       # load annotations
@@ -206,26 +219,26 @@ class imdb(object):
       if not exist_gt_bbox:
         print ('No GT BBOX for {}'.format(self._image_path_at(idx)))
 
-      if mc.DATA_AUGMENTATION:
-        assert mc.DRIFT_X >= 0 and mc.DRIFT_Y > 0, \
+      if DATA_AUGMENTATION:
+        assert DRIFT_X >= 0 and DRIFT_Y > 0, \
             'mc.DRIFT_X and mc.DRIFT_Y must be >= 0'
 
-        if mc.DRIFT_X > 0 or mc.DRIFT_Y > 0:
+        if DRIFT_X > 0 or DRIFT_Y > 0:
           # Ensures that gt boundibg box is not cutted out of the image
           if exist_gt_bbox:
             max_drift_x = min(gt_bbox[:, 0] - gt_bbox[:, 2]/2.0+1)
             max_drift_y = min(gt_bbox[:, 1] - gt_bbox[:, 3]/2.0+1)
             assert max_drift_x >= 0 and max_drift_y >= 0, 'bbox out of image'
 
-            dy = np.random.randint(-mc.DRIFT_Y, min(mc.DRIFT_Y+1, max_drift_y))
-            dx = np.random.randint(-mc.DRIFT_X, min(mc.DRIFT_X+1, max_drift_x))
+            dy = np.random.randint(-DRIFT_Y, min(DRIFT_Y+1, max_drift_y))
+            dx = np.random.randint(-DRIFT_X, min(DRIFT_X+1, max_drift_x))
 
             # shift bbox
             gt_bbox[:, 0] = gt_bbox[:, 0] - dx
             gt_bbox[:, 1] = gt_bbox[:, 1] - dy
           else:
-            dy = np.random.randint(-mc.DRIFT_Y, mc.DRIFT_Y + 1)
-            dx = np.random.randint(-mc.DRIFT_X, mc.DRIFT_X + 1)
+            dy = np.random.randint(-DRIFT_Y, DRIFT_Y + 1)
+            dx = np.random.randint(-DRIFT_X, DRIFT_X + 1)
 
           # distort image
           orig_h -= dy
@@ -245,12 +258,12 @@ class imdb(object):
             gt_bbox[:, 0] = orig_w - 1 - gt_bbox[:, 0]
 
       # scale image
-      im = cv2.resize(im, (mc.IMAGE_WIDTH, mc.IMAGE_HEIGHT))
+      im = cv2.resize(im, (IMAGE_WIDTH, IMAGE_HEIGHT))
       image_per_batch.append(im)
 
       # scale annotation
-      x_scale = mc.IMAGE_WIDTH/orig_w
-      y_scale = mc.IMAGE_HEIGHT/orig_h
+      x_scale = IMAGE_WIDTH/orig_w
+      y_scale = IMAGE_HEIGHT/orig_h
       if exist_gt_bbox:
         gt_bbox[:, 0::2] = gt_bbox[:, 0::2]*x_scale
         gt_bbox[:, 1::2] = gt_bbox[:, 1::2]*y_scale
@@ -259,9 +272,9 @@ class imdb(object):
       aidx_per_image, delta_per_image = [], []
       aidx_set = set()
       for i in range(len(gt_bbox)):
-        overlaps = batch_iou(mc.ANCHOR_BOX, gt_bbox[i])
+        overlaps = batch_iou(self.ALL_ANCHOR_BOXES, gt_bbox[i])
 
-        aidx = len(mc.ANCHOR_BOX)
+        aidx = len(self.ALL_ANCHOR_BOXES)
         for ov_idx in np.argsort(overlaps)[::-1]:
           if overlaps[ov_idx] <= 0:
             if mc.DEBUG_MODE:
@@ -279,10 +292,10 @@ class imdb(object):
               num_objects += 1
             break
 
-        if aidx == len(mc.ANCHOR_BOX): 
+        if aidx == len(self.ALL_ANCHOR_BOXES):
           # even the largeset available overlap is 0, thus, choose one with the
           # smallest square distance
-          dist = np.sum(np.square(gt_bbox[i] - mc.ANCHOR_BOX), axis=1)
+          dist = np.sum(np.square(gt_bbox[i] - self.ALL_ANCHOR_BOXES), axis=1)
           for dist_idx in np.argsort(dist):
             if dist_idx not in aidx_set:
               aidx_set.add(dist_idx)
@@ -291,10 +304,10 @@ class imdb(object):
         
         box_cx, box_cy, box_w, box_h = gt_bbox[i]
         delta = [0]*4
-        delta[0] = (box_cx - mc.ANCHOR_BOX[aidx][0])/box_w
-        delta[1] = (box_cy - mc.ANCHOR_BOX[aidx][1])/box_h
-        delta[2] = np.log(box_w/mc.ANCHOR_BOX[aidx][2])
-        delta[3] = np.log(box_h/mc.ANCHOR_BOX[aidx][3])
+        delta[0] = (box_cx - self.ALL_ANCHOR_BOXES[aidx][0])/box_w
+        delta[1] = (box_cy - self.ALL_ANCHOR_BOXES[aidx][1])/box_h
+        delta[2] = np.log(box_w/self.ALL_ANCHOR_BOXES[aidx][2])
+        delta[3] = np.log(box_h/self.ALL_ANCHOR_BOXES[aidx][3])
 
         aidx_per_image.append(aidx)
         delta_per_image.append(delta)
