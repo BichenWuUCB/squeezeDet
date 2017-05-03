@@ -124,29 +124,36 @@ class imdb(object):
       images: length batch_size list of arrays [height, width, 3]
     """
     mc = self.mc
+    BATCH_SIZE = mc.train.BATCH_SIZE
+
+    IMAGE_HEIGHT = self.mc.dataset.IMAGE_HEIGHT
+    IMAGE_WIDTH = self.mc.dataset.IMAGE_WIDTH
+
+    BGR_MEANS = np.array(mc.pre_processing.BGR_MEANS)
+
     if shuffle:
-      if self._cur_test_idx + mc.BATCH_SIZE >= len(self._test_image_idx):
+      if self._cur_test_idx + BATCH_SIZE >= len(self._test_image_idx):
         self._shuffle_test_image_idx()
-      batch_idx = self._test_perm_idx[self._cur_test_idx:self._cur_test_idx+mc.BATCH_SIZE]
-      self._cur_test_idx += mc.BATCH_SIZE
+      batch_idx = self._test_perm_idx[self._cur_test_idx:self._cur_test_idx+BATCH_SIZE]
+      self._cur_test_idx += BATCH_SIZE
     else:
-      if self._cur_test_idx + mc.BATCH_SIZE >= len(self._test_image_idx):
+      if self._cur_test_idx + BATCH_SIZE >= len(self._test_image_idx):
         batch_idx = self._test_image_idx[self._cur_test_idx:] \
-            + self._test_image_idx[:self._cur_test_idx + mc.BATCH_SIZE-len(self._test_image_idx)]
-        self._test_image_idx += mc.BATCH_SIZE - len(self._test_image_idx)
+            + self._test_image_idx[:self._cur_test_idx + BATCH_SIZE-len(self._test_image_idx)]
+        self._test_image_idx += BATCH_SIZE - len(self._test_image_idx)
       else:
-        batch_idx = self._test_image_idx[self._test_cur_idx:self._test_cur_idx+mc.BATCH_SIZE]
-        self._test_cur_idx += mc.BATCH_SIZE
+        batch_idx = self._test_image_idx[self._test_cur_idx:self._test_cur_idx+BATCH_SIZE]
+        self._test_cur_idx += BATCH_SIZE
 
     images, scales, image_fnames = [], [], []
     for i in batch_idx:
       im = cv2.imread(self._image_path_at(i))
       im = im.astype(np.float32, copy=False)
-      im -= mc.BGR_MEANS
+      im -= BGR_MEANS
       orig_h, orig_w, _ = [float(v) for v in im.shape]
-      im = cv2.resize(im, (mc.IMAGE_WIDTH, mc.IMAGE_HEIGHT))
-      x_scale = mc.IMAGE_WIDTH/orig_w
-      y_scale = mc.IMAGE_HEIGHT/orig_h
+      im = cv2.resize(im, (IMAGE_WIDTH, IMAGE_HEIGHT))
+      x_scale = IMAGE_WIDTH/orig_w
+      y_scale = IMAGE_HEIGHT/orig_h
       images.append(im)
       scales.append((x_scale, y_scale))
       image_fnames.append(self._image_path_at(i))

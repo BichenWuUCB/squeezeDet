@@ -46,11 +46,17 @@
 						   "PROB_THRESH" : 0.005,
 						   "TOP_N_DETECTION" :  64
 	                     },
-	 "train" : { "CHECKPOINT_DIR" : "/opt/logs/NEXAREAR/SqueezeNet/train",
+	 "train" : { "LOG_TRAIN_DIR" : "/opt/logs/NEXAREAR/SqueezeNet/train",
+		          "CHECKPOINT_DIR" : "/opt/logs/NEXAREAR/SqueezeNet/checkpoint",
 	 	         "MAX_STEPS" : 1000000,
 	 	         "SUMMARY_STEP" : 100,
 	 	         "CHECKPOINT_STEP" : 500,
+		          "NUM_OF_CHECKPOINTS_TO_KEEP": 200,
 	 			 "KEEP_PROB" : 0.5,
 	 	         "BATCH_SIZE" : 20
-	           }
+	           },
+	 "test" : {"NUM_OF_TEST_ITERATIONS":20,
+		       "LOG_TEST_DIR" : "/opt/logs/NEXAREAR/SqueezeNet/test",
+		 	   "IOU_THRESHOLD": 0.75
+	 		  }
 }
