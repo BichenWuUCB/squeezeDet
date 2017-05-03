@@ -1,0 +1,56 @@
+ {
+	"base_net" : "resnet50", 
+	"gpu_id" : "0",
+	"DEBUG_MODE" : false,
+	"initialization" : { "LOAD_PRETRAINED_MODEL" : true,
+	                     "load_from_checkpoint" : false,
+	                     "PRETRAINED_MODEL_PATH" : "/opt/data/NEXAREAR/pretrained_models/ResNet-50-weights.pkl",
+	                     "checkpoint_file" : "/opt/data/NEXAREAR/checkpoint_files/ResNet50/model.ckpt-69000"
+	                   },
+	"dataset" : { "DATASET" : "NEXAREAR",
+		          "CLASS_NAMES" : ["car","van","pickup_truck","truck", "bus"],
+		          "images_dir" : "/opt/data/NEXAREAR/images",
+	              "labels_dir" : "/opt/data/NEXAREAR/labels",
+	              "IMAGE_WIDTH" : 1280,
+	              "IMAGE_HEIGHT" : 720,
+	              "PERCENTAGE_OF_TEST_SET" : 0.3,
+	              "RANDOM_SEED_TEST_TRAIN_SPLIT" : 314
+                },
+	"pre_processing" : { "BGR_MEANS" : [[[103.939, 116.779, 123.68]]],
+		                 "data_augmentation_in_train" :{"DATA_AUGMENTATION" : true,
+										                 "DRIFT_X" : 150,
+										                 "DRIFT_Y" : 100
+										                }
+	                      },
+	"anchor_boxes" : { "ANCHOR_BOXES" : [[  94.0,  49.0], [ 225.0, 161.0], [ 170.0,  91.0],
+                                         [ 390.0, 181.0], [  41.0,  32.0], [ 128.0,  64.0],
+                                         [ 298.0, 164.0], [ 232.0,  99.0], [  65.0,  42.0]]
+	                 },
+	"system" : {"BATCH_NORM_EPSILON" :1e-5,
+	            "EXP_THRESH" : 1.0,
+	            "EPSILON" :  1e-16},
+	"optimization" : {  "WEIGHT_DECAY" : 0.0001,
+						"LEARNING_RATE" : 0.01,
+						"DECAY_STEPS" :  10000,
+						"MAX_GRAD_NORM" : 1.0,
+						"MOMENTUM" :  0.9,
+						"LR_DECAY_FACTOR" : 0.5,
+						"LOSS_COEF_CONF" : 1.0,
+                        "LOSS_COEF_BBOX" : 5.0,
+						"LOSS_COEF_CONF_POS" : 75.0,
+						"LOSS_COEF_CONF_NEG" : 100.0,
+						"LOSS_COEF_CLASS" :  1.0
+					},
+	 "post_processing" : { "PLOT_PROB_THRESH"  : 0.4,
+						   "NMS_THRESH" :  0.4,
+						   "PROB_THRESH" : 0.005,
+						   "TOP_N_DETECTION" :  64
+	                     },
+	 "train" : { "CHECKPOINT_DIR" : "/opt/logs/NEXAREAR/ResNet50/train",
+	 	         "MAX_STEPS" : 1000000,
+	 	         "SUMMARY_STEP" : 100,
+	 	         "CHECKPOINT_STEP" : 500,
+	 			 "KEEP_PROB" : 0.5,
+	 	         "BATCH_SIZE" : 20
+	           }
+}
