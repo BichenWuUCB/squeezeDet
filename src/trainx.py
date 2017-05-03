@@ -12,6 +12,9 @@ import os.path
 import sys
 import time
 import argparse
+import tempfile
+import json
+import shutil
 
 import numpy as np
 from six.moves import xrange
@@ -21,7 +24,9 @@ from config import *
 from dataset import *
 from utils.util import sparse_to_dense, bgr_to_rgb, bbox_transform
 from nets import *
+import nx_commons.model_evaulation.iou_engine as iou_engine
 
+JSON_PREFIX = '.json'
 
 def _draw_box(im, box_list, label_list, color=(0,255,0), cdict=None, form='center'):
   assert form == 'center' or form == 'diagonal', \
@@ -93,7 +98,8 @@ def train(mcfg):
     imdb = available_datasets[mcfg.dataset.DATASET](model.ANCHOR_BOX,mcfg)
 
     BATCH_SIZE = mcfg.train.BATCH_SIZE
-    train_dir = mcfg.train.CHECKPOINT_DIR
+    checkpoint_dir = mcfg.train.CHECKPOINT_DIR
+    train_logs = mcfg.train.LOG_TRAIN_DIR
 
     N_ANCHORS = len(model.ANCHOR_BOX)
     N_CLASSES = len(mcfg.dataset.CLASS_NAMES)
@@ -102,9 +108,14 @@ def train(mcfg):
     MAX_STEPS = mcfg.train.MAX_STEPS
     CHECKPOINT_STEP = mcfg.train.CHECKPOINT_STEP
     SUMMARY_STEP = mcfg.train.SUMMARY_STEP
+    NUM_OF_CHECKPOINTS_TO_KEEP = mcfg.train.NUM_OF_CHECKPOINTS_TO_KEEP
+
+    NUM_OF_TEST_ITERATIONS = mcfg.test.NUM_OF_TEST_ITERATIONS
+    test_logs = mcfg.test.LOG_TEST_DIR
+    IOU_THRESOLD= mcfg.test.IOU_THRESHOLD
 
     # save model size, flops, activations by layers
-    with open(os.path.join(train_dir, 'model_metrics.txt'), 'w') as f:
+    with open(os.path.join(checkpoint_dir, 'model_metrics.txt'), 'w') as f:
       f.write('Number of parameter by layer:\n')
       count = 0
       for c in model.model_size_counter:
@@ -127,13 +138,13 @@ def train(mcfg):
       f.write('\ttotal: {}\n'.format(count))
     f.close()
     print ('Model statistics saved to {}.'.format(
-      os.path.join(train_dir, 'model_metrics.txt')))
+      os.path.join(checkpoint_dir, 'model_metrics.txt')))
 
-    saver = tf.train.Saver(tf.global_variables())
+    saver = tf.train.Saver(tf.global_variables(), max_to_keep=NUM_OF_CHECKPOINTS_TO_KEEP)
     summary_op = tf.summary.merge_all()
     init = tf.global_variables_initializer()
 
-    ckpt = tf.train.get_checkpoint_state(train_dir)
+    ckpt = tf.train.get_checkpoint_state(checkpoint_dir)
     if ckpt and ckpt.model_checkpoint_path:
         saver.restore(sess, ckpt.model_checkpoint_path)
 
@@ -141,7 +152,31 @@ def train(mcfg):
     sess.run(init)
     tf.train.start_queue_runners(sess=sess)
 
-    summary_writer = tf.summary.FileWriter(train_dir, sess.graph)
+    summary_writer = tf.summary.FileWriter(train_logs, sess.graph)
+    test_summary_writer = tf.summary.FileWriter(test_logs, sess.graph)
+
+    with tf.variable_scope('Test_Model') as scope:
+        precision = tf.placeholder(tf.float32, name='precision')
+        precision_op = tf.summary.scalar('precision_summary', precision)
+
+        num_of_detections = tf.placeholder(tf.int32, name='num_of_detections')
+        num_of_detections_op = tf.summary.scalar('num_of_detections_summary', num_of_detections)
+
+        localization_error_precentage = tf.placeholder(tf.float32, name='localization_error_precentage')
+        localization_error_precentage_op = tf.summary.scalar('localization_error_precentage_summary', localization_error_precentage)
+
+        classification_error_precentage = tf.placeholder(tf.float32, name='classification_error_precentage')
+        classification_error_precentage_op = tf.summary.scalar('classification_error_precentage_summary', classification_error_precentage)
+
+        background_error_precentage = tf.placeholder(tf.float32, name='background_error_precentage')
+        background_error_precentage_op = tf.summary.scalar('background_error_precentage_summary', background_error_precentage)
+
+        repeated_error_precentage = tf.placeholder(tf.float32, name='repeated_error_precentage')
+        repeated_error_precentage_op = tf.summary.scalar('repeated_error_precentage_summary', repeated_error_precentage)
+
+        recall = tf.placeholder(tf.float32, name='recall')
+        recall_op = tf.summary.scalar('recall_summary', recall)
+
 
     for step in xrange(MAX_STEPS):
       start_time = time.time()
@@ -195,6 +230,55 @@ def train(mcfg):
       }
 
       if step % SUMMARY_STEP == 0:
+        pred_json_folder = tempfile.mkdtemp()
+        # test model
+        for ii_test in range(NUM_OF_TEST_ITERATIONS):
+          test_img_batch, scales_batch, img_fnames_batch = imdb.read_test_image_batch()
+          ground_truth_boxes_directory = imdb.get_label_path()
+          test_feed_dict = {
+              model.image_input: test_img_batch,
+              model.keep_prob: KEEP_PROB,
+              model.input_mask: np.reshape(
+                  sparse_to_dense(
+                      mask_indices, [BATCH_SIZE, N_ANCHORS],
+                      [1.0] * len(mask_indices)),
+                  [BATCH_SIZE, N_ANCHORS, 1]),
+              model.box_delta_input: sparse_to_dense(
+                  bbox_indices, [BATCH_SIZE, N_ANCHORS, 4],
+                  box_delta_values),
+              model.box_input: sparse_to_dense(
+                  bbox_indices, [BATCH_SIZE, N_ANCHORS, 4],
+                  box_values),
+              model.labels: sparse_to_dense(
+                  label_indices,
+                  [BATCH_SIZE, N_ANCHORS, N_CLASSES],
+                  [1.0] * len(label_indices)),
+          }
+          compute_time = infer_bounding_boxes_on_image_batch(model, sess, test_feed_dict, img_fnames_batch,
+                                                             pred_json_folder)
+          print('Processing time batch {} {}'.format(ii_test, compute_time))
+          # extract score
+        results = iou_engine.get_bbox_average_iou_evaulation(ground_truth_boxes_directory, pred_json_folder,
+                                                           imdb.classes, IOU_THRESOLD, in_images_dir=None,
+                                                           out_images_and_boxes_dir=None)
+        print('Model Eval Score {}'.format(results))
+        clean_folders([pred_json_folder])
+
+        model_eval_summary_feed_dict = {num_of_detections: results['num_of_detections'],
+                                      precision: results['precision'],
+                                      localization_error_precentage: results['localization_error_precentage'],
+                                      classification_error_precentage: results['classification_error_precentage'],
+                                      background_error_precentage: results['background_error_precentage'],
+                                      repeated_error_precentage: results['repeated_error_precentage'],
+                                      recall: results['recall']}
+        model_validation_summary = sess.run(
+          [num_of_detections_op, precision_op, localization_error_precentage_op, classification_error_precentage_op,
+           background_error_precentage_op, repeated_error_precentage_op, recall_op],
+          feed_dict=model_eval_summary_feed_dict)
+
+        for val_stats in model_validation_summary:
+          test_summary_writer.add_summary(val_stats, step)
+
         op_list = [
             model.train_op, model.loss, summary_op, model.det_boxes,
             model.det_probs, model.det_class, model.conf_loss,
@@ -247,8 +331,82 @@ def train(mcfg):
 
       # Save the model checkpoint periodically.
       if step % CHECKPOINT_STEP == 0 or (step + 1) == MAX_STEPS:
-        checkpoint_path = os.path.join(train_dir, 'model.ckpt')
+        checkpoint_path = os.path.join(checkpoint_dir, 'model.ckpt')
         saver.save(sess, checkpoint_path, global_step=step)
+
+def clean_folders(folders_lst):
+    for folder in folders_lst:
+        if os.path.isdir(folder):
+            shutil.rmtree(folder)
+
+def infer_bounding_boxes_on_image_batch(model, sess, test_feed_dict, img_fnames_batch, pred_json_folder):
+
+    t_start = time.time()
+
+    IMAGE_HEIGHT = model.mc.dataset.IMAGE_HEIGHT
+    IMAGE_WIDTH = model.mc.dataset.IMAGE_WIDTH
+
+    det_boxes, det_probs, det_class = sess.run(
+        [model.det_boxes, model.det_probs, model.det_class],
+        feed_dict=test_feed_dict)
+    test_img_batch = test_feed_dict[model.image_input]
+    for ii_img, img in enumerate(test_img_batch):
+        width = img.shape[1]
+        height = img.shape[0]
+
+
+        DW = float(float(width) / float(IMAGE_WIDTH))
+        DH = float(float(height) / float(IMAGE_HEIGHT))
+
+        final_boxes, final_probs, final_class = model.filter_prediction(
+            det_boxes[ii_img], det_probs[ii_img], det_class[ii_img])
+
+        compute_time = time.time() - t_start
+
+        keep_idx = [idx for idx in range(len(final_probs)) \
+                    if final_probs[idx] > model.mc.post_processing.PLOT_PROB_THRESH]
+        final_boxes = [final_boxes[idx] for idx in keep_idx]
+        final_probs = [final_probs[idx] for idx in keep_idx]
+        final_class = [final_class[idx] for idx in keep_idx]
+
+        box_list = final_boxes
+        label_list = [model.mc.dataset.CLASS_NAMES[idx] + ': (%.2f)' % prob \
+             for idx, prob in zip(final_class, final_probs)]
+
+        all_out_boxes = []
+        for bbox, label in zip(box_list, label_list):
+            cx, cy, w, h = bbox
+            xmin_sdet = cx - w / 2
+            ymin_sdet = cy - h / 2
+            xmax_sdet = cx + w / 2
+            ymax_sdet = cy + h / 2
+
+            xmin = float(xmin_sdet * DW)
+            ymin = float(ymin_sdet * DH)
+            xmax = float(xmax_sdet * DW)
+            ymax = float(ymax_sdet * DH)
+
+            class_label = label.split(':')[0]  # text before "CLASS: (PROB)"
+
+            out_box = { "type": "RECT",
+                        "label": class_label,
+                        "position": "UNDEFINED",
+                        "bounding_box_with_pose": {  "p0": { 'x' : xmin, 'y' : ymin},
+                                                     "p1": { 'x' : xmax, 'y' : ymax},
+                                                     "width": float(w*DW),
+                                                     "height": float(h*DH),
+                                                     "aspect_ratio": float(w*DW)/float(h*DH),
+                                                     "pose": "REAR"
+                                                     }
+                    }
+            all_out_boxes.append(out_box)
+        img_basename = os.path.basename(img_fnames_batch[ii_img])
+        json_dict_res = {'img_filename': img_basename, 'bounding_box_object_annotation': all_out_boxes}
+        json_fname = os.path.join(pred_json_folder, img_basename + JSON_PREFIX)
+        json_file = open(json_fname, 'w')
+        json.dump(json_dict_res, json_file, indent=4, sort_keys=True)
+        json_file.close()
+    return compute_time
 
 
 if __name__ == '__main__':
@@ -262,6 +420,14 @@ if __name__ == '__main__':
 
     if os.path.isfile(args.cfg_file):
         mc = get_model_config(args.cfg_file)
+
+    if tf.gfile.Exists(mc.train.LOG_TRAIN_DIR):
+        tf.gfile.DeleteRecursively(mc.train.LOG_TRAIN_DIR)
+    tf.gfile.MakeDirs(mc.train.LOG_TRAIN_DIR)
+
+    if tf.gfile.Exists(mc.test.LOG_TEST_DIR):
+        tf.gfile.DeleteRecursively(mc.test.LOG_TEST_DIR)
+    tf.gfile.MakeDirs(mc.test.LOG_TEST_DIR)
 
     if tf.gfile.Exists(mc.train.CHECKPOINT_DIR):
         tf.gfile.DeleteRecursively(mc.train.CHECKPOINT_DIR)

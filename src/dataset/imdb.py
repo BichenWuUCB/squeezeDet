@@ -19,6 +19,7 @@ class imdb(object):
     self._classes = []
     self._image_set = []
     self._image_idx = []
+    self._test_image_idx = []
     self._data_root_path = []
     self._rois = {}
 
@@ -28,6 +29,8 @@ class imdb(object):
     # batch reader
     self._perm_idx = None
     self._cur_idx = 0
+    self._test_perm_idx = None
+    self._cur_test_idx = 0
 
   @property
   def name(self):
@@ -44,6 +47,10 @@ class imdb(object):
   @property
   def image_idx(self):
     return self._image_idx
+
+  @property
+  def test_image_idx(self):
+    return self._test_image_idx
 
   @property
   def image_set(self):
@@ -63,6 +70,14 @@ class imdb(object):
     self._perm_idx = [self._image_idx[i] for i in
         np.random.permutation(np.arange(len(self._image_idx)))]
     self._cur_idx = 0
+
+  def _shuffle_test_image_idx(self,seed=None):
+    if seed is not None:
+      np.random.seed(seed=seed)
+    self._test_perm_idx = [self._test_image_idx[i] for i in
+                      np.random.permutation(np.arange(len(self._test_image_idx)))]
+    self._cur_test_idx = 0
+
 
   def read_image_batch(self, shuffle=True):
     """Only Read a batch of images
@@ -86,7 +101,7 @@ class imdb(object):
         batch_idx = self._image_idx[self._cur_idx:self._cur_idx+mc.BATCH_SIZE]
         self._cur_idx += mc.BATCH_SIZE
 
-    images, scales = [], []
+    images, scales, image_fnames = [], [], []
     for i in batch_idx:
       im = cv2.imread(self._image_path_at(i))
       im = im.astype(np.float32, copy=False)
@@ -97,8 +112,53 @@ class imdb(object):
       y_scale = mc.IMAGE_HEIGHT/orig_h
       images.append(im)
       scales.append((x_scale, y_scale))
+      image_fnames.append(self._image_path_at(i))
 
-    return images, scales
+    return images, scales, image_fnames
+
+  def read_test_image_batch(self, shuffle=True):#todo separate between train and deploy batch size after refactoring
+    """Only Read a batch of test images
+    Args:
+      shuffle: whether or not to shuffle the dataset
+    Returns:
+      images: length batch_size list of arrays [height, width, 3]
+    """
+    mc = self.mc
+    BATCH_SIZE = mc.train.BATCH_SIZE
+
+    IMAGE_HEIGHT = self.mc.dataset.IMAGE_HEIGHT
+    IMAGE_WIDTH = self.mc.dataset.IMAGE_WIDTH
+
+    BGR_MEANS = np.array(mc.pre_processing.BGR_MEANS)
+
+    if shuffle:
+      if self._cur_test_idx + BATCH_SIZE >= len(self._test_image_idx):
+        self._shuffle_test_image_idx()
+      batch_idx = self._test_perm_idx[self._cur_test_idx:self._cur_test_idx+BATCH_SIZE]
+      self._cur_test_idx += BATCH_SIZE
+    else:
+      if self._cur_test_idx + BATCH_SIZE >= len(self._test_image_idx):
+        batch_idx = self._test_image_idx[self._cur_test_idx:] \
+            + self._test_image_idx[:self._cur_test_idx + BATCH_SIZE-len(self._test_image_idx)]
+        self._test_image_idx += BATCH_SIZE - len(self._test_image_idx)
+      else:
+        batch_idx = self._test_image_idx[self._test_cur_idx:self._test_cur_idx+BATCH_SIZE]
+        self._test_cur_idx += BATCH_SIZE
+
+    images, scales, image_fnames = [], [], []
+    for i in batch_idx:
+      im = cv2.imread(self._image_path_at(i))
+      im = im.astype(np.float32, copy=False)
+      im -= BGR_MEANS
+      orig_h, orig_w, _ = [float(v) for v in im.shape]
+      im = cv2.resize(im, (IMAGE_WIDTH, IMAGE_HEIGHT))
+      x_scale = IMAGE_WIDTH/orig_w
+      y_scale = IMAGE_HEIGHT/orig_h
+      images.append(im)
+      scales.append((x_scale, y_scale))
+      image_fnames.append(self._image_path_at(i))
+
+    return images, scales, image_fnames
 
   def read_batch(self, shuffle=True):
     """Read a batch of image and bounding box annotations.
