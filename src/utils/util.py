@@ -221,10 +221,11 @@ def safe_exp(w, thresh):
 
   slope = np.exp(thresh)
   with tf.variable_scope('safe_exponential'):
-    lin_region = tf.to_float(w > thresh)
+    lin_bool = w > thresh
+    lin_region = tf.to_float(lin_bool)
 
     lin_out = slope*(w - thresh + 1.)
-    exp_out = tf.exp(w)
+    exp_out = tf.exp(tf.where(lin_bool, tf.zeros_like(w), w))
 
     out = lin_region*lin_out + (1.-lin_region)*exp_out
   return out
