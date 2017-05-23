@@ -53,13 +53,13 @@ class kitti(imdb):
   def _load_kitti_annotation(self):
     def _get_obj_level(obj):
       height = float(obj[7]) - float(obj[5]) + 1
-      trucation = float(obj[1])
+      truncation = float(obj[1])
       occlusion = float(obj[2])
-      if height >= 40 and trucation <= 0.15 and occlusion <= 0:
+      if height >= 40 and truncation <= 0.15 and occlusion <= 0:
           return 1
-      elif height >= 25 and trucation <= 0.3 and occlusion <= 1:
+      elif height >= 25 and truncation <= 0.3 and occlusion <= 1:
           return 2
-      elif height >= 25 and trucation <= 0.5 and occlusion <= 2:
+      elif height >= 25 and truncation <= 0.5 and occlusion <= 2:
           return 3
       else:
           return 4
@@ -77,6 +77,7 @@ class kitti(imdb):
           cls = self._class_to_idx[obj[0].lower().strip()]
         except:
           continue
+
         if self.mc.EXCLUDE_HARD_EXAMPLES and _get_obj_level(obj) > 3:
           continue
         xmin = float(obj[4])
@@ -229,35 +230,15 @@ class kitti(imdb):
         detected = [False]*len(gt_bboxes)
 
         det_bboxes = self._det_rois[idx]
+        if len(gt_bboxes) < 1:
+          continue
+
         for i, det in enumerate(det_bboxes):
           if i < len(gt_bboxes):
             num_dets += 1
           ious = batch_iou(gt_bboxes[:, :4], det[:4])
           max_iou = np.max(ious)
           gt_idx = np.argmax(ious)
-          # if not detected[gt_idx]:
-          #   if max_iou > 0.1:
-          #     if gt_bboxes[gt_idx, 4] == det[4]:
-          #       if max_iou >= 0.5:
-          #         if i < len(gt_bboxes):
-          #           num_correct += 1
-          #         detected[gt_idx] = True
-          #       else:
-          #         if i < len(gt_bboxes):
-          #           num_loc_error += 1
-          #           _save_detection(f, idx, 'loc', det, det[5])
-          #     else:
-          #       if i < len(gt_bboxes):
-          #         num_cls_error += 1
-          #         _save_detection(f, idx, 'cls', det, det[5])
-          #   else:
-          #     if i < len(gt_bboxes):
-          #       num_bg_error += 1
-          #       _save_detection(f, idx, 'bg', det, det[5])
-          # else:
-          #   if i < len(gt_bboxes):
-          #     num_repeated_error += 1
-
           if max_iou > 0.1:
             if gt_bboxes[gt_idx, 4] == det[4]:
               if max_iou >= 0.5:

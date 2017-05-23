@@ -103,6 +103,8 @@ def train():
   assert FLAGS.dataset == 'KITTI', \
       'Currently only support KITTI dataset'
 
+  os.environ['CUDA_VISIBLE_DEVICES'] = FLAGS.gpu
+
   with tf.Graph().as_default():
 
     assert FLAGS.net == 'vgg16' or FLAGS.net == 'resnet50' \
@@ -111,19 +113,22 @@ def train():
     if FLAGS.net == 'vgg16':
       mc = kitti_vgg16_config()
       mc.PRETRAINED_MODEL_PATH = FLAGS.pretrained_model_path
-      model = VGG16ConvDet(mc, FLAGS.gpu)
+      model = VGG16ConvDet(mc)
     elif FLAGS.net == 'resnet50':
       mc = kitti_res50_config()
       mc.PRETRAINED_MODEL_PATH = FLAGS.pretrained_model_path
-      model = ResNet50ConvDet(mc, FLAGS.gpu)
+      model = ResNet50ConvDet(mc)
     elif FLAGS.net == 'squeezeDet':
       mc = kitti_squeezeDet_config()
       mc.PRETRAINED_MODEL_PATH = FLAGS.pretrained_model_path
-      model = SqueezeDet(mc, FLAGS.gpu)
+      model = SqueezeDet(mc)
     elif FLAGS.net == 'squeezeDet+':
       mc = kitti_squeezeDetPlus_config()
       mc.PRETRAINED_MODEL_PATH = FLAGS.pretrained_model_path
-      model = SqueezeDetPlus(mc, FLAGS.gpu)
+      model = SqueezeDetPlus(mc)
+
+    # set keep probability to 0.5
+    model.keep_prob = 0.5
 
     imdb = kitti(FLAGS.image_set, FLAGS.data_path, mc)
 
@@ -200,7 +205,6 @@ def train():
 
       feed_dict = {
           model.image_input: image_per_batch,
-          model.keep_prob: mc.KEEP_PROB,
           model.input_mask: np.reshape(
               sparse_to_dense(
                   mask_indices, [mc.BATCH_SIZE, mc.ANCHORS],

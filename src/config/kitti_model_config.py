@@ -11,8 +11,8 @@ def kitti_model_config():
   mc                       = base_model_config('KITTI')
   # mc.IMAGE_WIDTH           = 1864 # half width 621
   # mc.IMAGE_HEIGHT          = 562 # half height 187
-  mc.IMAGE_WIDTH           = 1242 # half width 621
-  mc.IMAGE_HEIGHT          = 375 # half height 187
+  mc.IMAGE_WIDTH           = 1248 # half width 621
+  mc.IMAGE_HEIGHT          = 384 # half height 187
   # mc.IMAGE_WIDTH           = 621
   # mc.IMAGE_HEIGHT          = 187
 
@@ -43,9 +43,9 @@ def kitti_model_config():
   return mc
 
 def set_anchors(mc):
-  H, W, B = 22, 76, 9
+  H, W, B = 24, 78, 9
   anchor_shapes = np.reshape(
-     [np.array(
+      [np.array(
           [[  36.,  37.], [ 366., 174.], [ 115.,  59.],
            [ 162.,  87.], [  38.,  90.], [ 258., 173.],
            [ 224., 108.], [  78., 170.], [  72.,  43.]])] * H * W,

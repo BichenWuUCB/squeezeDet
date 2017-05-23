@@ -224,11 +224,11 @@ class imdb(object):
               aidx_set.add(dist_idx)
               aidx = dist_idx
               break
-        
+
         box_cx, box_cy, box_w, box_h = gt_bbox[i]
         delta = [0]*4
-        delta[0] = (box_cx - mc.ANCHOR_BOX[aidx][0])/box_w
-        delta[1] = (box_cy - mc.ANCHOR_BOX[aidx][1])/box_h
+        delta[0] = (box_cx - mc.ANCHOR_BOX[aidx][0])/mc.ANCHOR_BOX[aidx][2]
+        delta[1] = (box_cy - mc.ANCHOR_BOX[aidx][1])/mc.ANCHOR_BOX[aidx][3]
         delta[2] = np.log(box_w/mc.ANCHOR_BOX[aidx][2])
         delta[3] = np.log(box_h/mc.ANCHOR_BOX[aidx][3])
 

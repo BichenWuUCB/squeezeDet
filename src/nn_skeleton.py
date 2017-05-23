@@ -73,6 +73,9 @@ class ModelSkeleton:
   """Base class of NN detection models."""
   def __init__(self, mc):
     self.mc = mc
+    # a scalar tensor in range (0, 1]. Usually set to 0.5 in training phase and
+    # 1.0 in evaluation phase
+    self.keep_prob = 1.0
 
     # image batch input
     self.image_input = tf.placeholder(
@@ -81,7 +84,7 @@ class ModelSkeleton:
     )
     # a scalar tensor in range (0, 1]. Usually set to 0.5 in training phase and
     # 1.0 in evaluation phase
-    self.keep_prob = tf.placeholder(tf.float32, name='keep_prob')
+    # self.keep_prob = tf.placeholder(tf.float32, name='keep_prob')
     # A tensor where an element is 1 if the corresponding box is "responsible"
     # for detection an object and 0 otherwise.
     self.input_mask = tf.placeholder(
@@ -662,7 +665,7 @@ class ModelSkeleton:
       # count layer stats
       self.model_size_counter.append((layer_name, (dim+1)*hiddens))
 
-      num_flops = 2 * dim * hidden + hidden
+      num_flops = 2 * dim * hiddens + hiddens
       if relu:
         num_flops += 2*hiddens
       self.flop_counter.append((layer_name, num_flops))

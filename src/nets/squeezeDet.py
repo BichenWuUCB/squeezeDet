@@ -17,7 +17,7 @@ import tensorflow as tf
 from nn_skeleton import ModelSkeleton
 
 class SqueezeDet(ModelSkeleton):
-  def __init__(self, mc, gpu_id):
+  def __init__(self, mc, gpu_id=0):
     with tf.device('/gpu:{}'.format(gpu_id)):
       ModelSkeleton.__init__(self, mc)
 
@@ -39,23 +39,23 @@ class SqueezeDet(ModelSkeleton):
 
     conv1 = self._conv_layer(
         'conv1', self.image_input, filters=64, size=3, stride=2,
-        padding='VALID', freeze=True)
+        padding='SAME', freeze=True)
     pool1 = self._pooling_layer(
-        'pool1', conv1, size=3, stride=2, padding='VALID')
+        'pool1', conv1, size=3, stride=2, padding='SAME')
 
     fire2 = self._fire_layer(
         'fire2', pool1, s1x1=16, e1x1=64, e3x3=64, freeze=False)
     fire3 = self._fire_layer(
         'fire3', fire2, s1x1=16, e1x1=64, e3x3=64, freeze=False)
     pool3 = self._pooling_layer(
-        'pool3', fire3, size=3, stride=2, padding='VALID')
+        'pool3', fire3, size=3, stride=2, padding='SAME')
 
     fire4 = self._fire_layer(
         'fire4', pool3, s1x1=32, e1x1=128, e3x3=128, freeze=False)
     fire5 = self._fire_layer(
         'fire5', fire4, s1x1=32, e1x1=128, e3x3=128, freeze=False)
     pool5 = self._pooling_layer(
-        'pool5', fire5, size=3, stride=2, padding='VALID')
+        'pool5', fire5, size=3, stride=2, padding='SAME')
 
     fire6 = self._fire_layer(
         'fire6', pool5, s1x1=48, e1x1=192, e3x3=192, freeze=False)
@@ -78,7 +78,8 @@ class SqueezeDet(ModelSkeleton):
         'conv12', dropout11, filters=num_output, size=3, stride=1,
         padding='SAME', xavier=False, relu=False, stddev=0.0001)
 
-  def _fire_layer(self, layer_name, inputs, s1x1, e1x1, e3x3, freeze=False):
+  def _fire_layer(self, layer_name, inputs, s1x1, e1x1, e3x3, stddev=0.01,
+      freeze=False):
     """Fire layer constructor.
 
     Args:
@@ -94,12 +95,12 @@ class SqueezeDet(ModelSkeleton):
 
     sq1x1 = self._conv_layer(
         layer_name+'/squeeze1x1', inputs, filters=s1x1, size=1, stride=1,
-        padding='SAME', freeze=freeze)
+        padding='SAME', stddev=stddev, freeze=freeze)
     ex1x1 = self._conv_layer(
         layer_name+'/expand1x1', sq1x1, filters=e1x1, size=1, stride=1,
-        padding='SAME', freeze=freeze)
+        padding='SAME', stddev=stddev, freeze=freeze)
     ex3x3 = self._conv_layer(
         layer_name+'/expand3x3', sq1x1, filters=e3x3, size=3, stride=1,
-        padding='SAME', freeze=freeze)
+        padding='SAME', stddev=stddev, freeze=freeze)
 
     return tf.concat([ex1x1, ex3x3], 3, name=layer_name+'/concat')
