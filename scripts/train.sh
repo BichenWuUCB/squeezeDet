@@ -34,11 +34,11 @@ done
 if [[ "$1" == "squeezeDet" ]]
 then
   python ./src/train.py \
-  --dataset=KITTI \
-  --pretrained_model_path=./data/SqueezeNet/squeezenet_v1.1.pkl \
-  --data_path=./data/KITTI \
+  --dataset=NEXAREAR \
+  --pretrained_model_path=/opt/data/NEXAREAR/pretrained_models/squeezenet_v1.1.pkl \
+  --data_path=/opt/data/NEXAREAR \
   --image_set=train \
-  --train_dir=/tmp/bichen/logs/SqueezeDet/train \
+  --train_dir=/opt/logs/NEXAREAR/SqueezeDet/train \
   --net=squeezeDet \
   --summary_step=100 \
   --checkpoint_step=500 \

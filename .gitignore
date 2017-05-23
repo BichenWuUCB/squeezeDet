@@ -1,3 +1,8 @@
 *pyc
 data/out/
 data/model_checkpoints
+./idea
+data/ResNet
+data/KITTI
+data/VGG16
+data/squeezeNet
