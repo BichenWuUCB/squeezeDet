@@ -17,21 +17,21 @@ from six.moves import xrange
 import tensorflow as tf
 
 from config import *
-from dataset import pascal_voc, kitti
+from dataset import pascal_voc, kitti, nexarear
 from utils.util import sparse_to_dense, bgr_to_rgb, bbox_transform
 from nets import *
 
 FLAGS = tf.app.flags.FLAGS
 
-tf.app.flags.DEFINE_string('dataset', 'KITTI',
-                           """Currently only support KITTI dataset.""")
+tf.app.flags.DEFINE_string('dataset', 'NEXAREAR',
+                           """Currently support KITTI and NEXAREAR datasets.""")
 tf.app.flags.DEFINE_string('data_path', '', """Root directory of data""")
 tf.app.flags.DEFINE_string('image_set', 'train',
                            """ Can be train, trainval, val, or test""")
 tf.app.flags.DEFINE_string('year', '2007',
                             """VOC challenge year. 2007 or 2012"""
                             """Only used for Pascal VOC dataset""")
-tf.app.flags.DEFINE_string('train_dir', '/tmp/bichen/logs/squeezeDet/train',
+tf.app.flags.DEFINE_string('train_dir', '/opt/logs/NEXAREAR/squeezeDet/train',
                             """Directory where to write event logs """
                             """and checkpoint.""")
 tf.app.flags.DEFINE_integer('max_steps', 1000000,
@@ -100,32 +100,42 @@ def _viz_prediction_result(model, images, bboxes, labels, batch_det_bbox,
 
 def train():
   """Train SqueezeDet model"""
-  assert FLAGS.dataset == 'KITTI', \
-      'Currently only support KITTI dataset'
+  assert FLAGS.dataset == 'KITTI' or FLAGS.dataset == 'NEXAREAR', \
+      'Currently only support KITTI and NEXAREAR datasets'
 
   with tf.Graph().as_default():
 
     assert FLAGS.net == 'vgg16' or FLAGS.net == 'resnet50' \
         or FLAGS.net == 'squeezeDet' or FLAGS.net == 'squeezeDet+', \
         'Selected neural net architecture not supported: {}'.format(FLAGS.net)
-    if FLAGS.net == 'vgg16':
-      mc = kitti_vgg16_config()
-      mc.PRETRAINED_MODEL_PATH = FLAGS.pretrained_model_path
-      model = VGG16ConvDet(mc, FLAGS.gpu)
-    elif FLAGS.net == 'resnet50':
-      mc = kitti_res50_config()
-      mc.PRETRAINED_MODEL_PATH = FLAGS.pretrained_model_path
-      model = ResNet50ConvDet(mc, FLAGS.gpu)
-    elif FLAGS.net == 'squeezeDet':
-      mc = kitti_squeezeDet_config()
-      mc.PRETRAINED_MODEL_PATH = FLAGS.pretrained_model_path
-      model = SqueezeDet(mc, FLAGS.gpu)
-    elif FLAGS.net == 'squeezeDet+':
-      mc = kitti_squeezeDetPlus_config()
-      mc.PRETRAINED_MODEL_PATH = FLAGS.pretrained_model_path
-      model = SqueezeDetPlus(mc, FLAGS.gpu)
 
-    imdb = kitti(FLAGS.image_set, FLAGS.data_path, mc)
+    if FLAGS.dataset == 'KITTI':
+        if FLAGS.net == 'vgg16':
+          mc = kitti_vgg16_config()
+          mc.PRETRAINED_MODEL_PATH = FLAGS.pretrained_model_path
+          model = VGG16ConvDet(mc, FLAGS.gpu)
+        elif FLAGS.net == 'resnet50':
+          mc = kitti_res50_config()
+          mc.PRETRAINED_MODEL_PATH = FLAGS.pretrained_model_path
+          model = ResNet50ConvDet(mc, FLAGS.gpu)
+        elif FLAGS.net == 'squeezeDet':
+          mc = kitti_squeezeDet_config()
+          mc.PRETRAINED_MODEL_PATH = FLAGS.pretrained_model_path
+          model = SqueezeDet(mc, FLAGS.gpu)
+        elif FLAGS.net == 'squeezeDet+':
+          mc = kitti_squeezeDetPlus_config()
+          mc.PRETRAINED_MODEL_PATH = FLAGS.pretrained_model_path
+          model = SqueezeDetPlus(mc, FLAGS.gpu)
+
+        imdb = kitti(FLAGS.image_set, FLAGS.data_path, mc)
+    elif FLAGS.dataset == 'NEXAREAR':
+        assert FLAGS.net == 'squeezeDet', \
+            'Currently only the squeezeDet model is supported for the NEXAREAR dataset'
+        if FLAGS.net == 'squeezeDet':
+          mc = nexarear_squeezeDet_config()
+          mc.PRETRAINED_MODEL_PATH = FLAGS.pretrained_model_path
+          model = SqueezeDet(mc, FLAGS.gpu)
+        imdb = nexarear(FLAGS.image_set, FLAGS.data_path, mc)
 
     # save model size, flops, activations by layers
     with open(os.path.join(FLAGS.train_dir, 'model_metrics.txt'), 'w') as f:

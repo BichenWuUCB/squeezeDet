@@ -4,11 +4,11 @@
 # command for squeezeDet:
 # =========================================================================== #
 python ./src/eval.py \
-  --dataset=KITTI \
-  --data_path=./data/KITTI \
+  --dataset=NEXAREAR \
+  --data_path=/opt/data/NEXAREAR/ \
   --image_set=val \
-  --eval_dir=/tmp/bichen/logs/SqueezeDet/eval_val \
-  --checkpoint_path=/tmp/bichen/logs/SqueezeDet/train \
+  --eval_dir=/opt/data/KITTI/SqueezeDet/eval_val \
+  --checkpoint_path=/opt/logs/NEXAREAR/SqueezeDet/train \
   --net=squeezeDet \
   --gpu=0
 
