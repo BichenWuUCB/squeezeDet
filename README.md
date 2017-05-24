@@ -113,39 +113,37 @@ The following instructions are written for Linux-based distros.
   tar -xzvf VGG16.tgz
   ```
 
-- Now we can start training. Training script can be found in `$SQDT_ROOT/scripts/train.sh`, which contains commands to train 4 models: SqueezeDet, SqueezeDet+, VGG16+ConvDet, ResNet50+ConvDet. Un-comment the model you want to train, and then, type the following to train using only the CPU:
+- Now we can start training. Training script can be found in `$SQDT_ROOT/scripts/train.sh`, which contains commands to train 4 models: SqueezeDet, SqueezeDet+, VGG16+ConvDet, ResNet50+ConvDet. 
+  ```Shell
+  cd $SQDT_ROOT/
+  ./scripts/train.sh -net (squeezeDet|squeezeDet+|vgg16|resnet50) -train_dir /tmp/bichen/logs/squeezedet -gpu 0
+  ```
+
+  Training logs are saved to the directory specified by `-train_dir`. GPU id is specified by `-gpu`. Network to train is specificed by `-net` 
+
+- Before evaluation, you need to first compile the official evaluation script of KITTI dataset
+  ```Shell
+  cd $SQDT_ROOT/src/dataset/kitti-eval
+  make
+  ```
+
+- Then, you can launch the evaluation script (in parallel with training) by 
 
   ```Shell
   cd $SQDT_ROOT/
-  ./scripts/train.sh squeezeDet
+  ./scripts/eval.sh -net (squeezeDet|squeezeDet+|vgg16|resnet50) -eval_dir /tmp/bichen/logs/squeezedet -image_set (train|val) 
   ```
 
-  To train using the GPU, add the `-gpu` flag.
-  
-  ```Shell
-  ./scripts/train.sh squeezeDet -gpu
-  ```
+  Note that `-train_dir` in the training script should be the same as `-eval_dir` in the evaluation script to make it easy for tensorboard to load logs. 
 
-  Training logs are saved to the directory specified by `--train_dir`. 
-
-- At the same time, you can launch evaluation by 
-
-  ```Shell
-  cd $SQDT_ROOT/
-  ./scripts/eval_train.sh
-  ./scripts/eval_val.sh
-  ```
-
-  If you've changed the `--train_dir` in the training script, make sure to also change `--checkpoint_dir` in the evaluation script to the same as `--train_dir` so evaluation script knows where to find the checkpoint. The evaluation logs will be dumped into the directory specified by `--eval_dir`. It's recommended to put `--train_dir` and  `--eval_dir` under the same `$LOG_DIR` such that tensorboard can load both training and evaluation logs. 
-
-  The two scripts simultaneously evaluate the model on training and validation set. The training script keeps dumping checkpoint (model parameters) to the training directory once every 1000 steps (step size can be changed). Once a new checkpoint is saved, evaluation threads load the new checkpoint file and evaluate them on training and validation set. 
+  You can run two evaluation scripts to simultaneously evaluate the model on training and validation set. The training script keeps dumping checkpoint (model parameters) to the training directory once every 1000 steps (step size can be changed). Once a new checkpoint is saved, evaluation threads load the new checkpoint file and evaluate them on training and validation set. 
 
 - Finally, to monitor training and evaluation process, you can use tensorboard by
 
   ```Shell
   tensorboard --logdir=$LOG_DIR
   ```
-  Here, `$LOG_DIR` is the directory where your training and evaluation threads dump log events. As we mentioned it before, your training directory is specified by the flag `--train_dir` and your evaluation directory is specified by `--eval_dir`. Then `$LOG_DIR` should be the upper directory to `--train_dir` and `--eval_dir`. From tensorboard, you should be able to see a lot of information including loss, average precision, error analysis, example detections, model visualization, etc.
+  Here, `$LOG_DIR` is the directory where your training and evaluation threads dump log events, which should be the same as `-train_dir` and `-eval_dir` specified in `train.sh` and `eval.sh`. From tensorboard, you should be able to see a lot of information including loss, average precision, error analysis, example detections, model visualization, etc.
 
   ![alt text](https://github.com/BichenWuUCB/squeezeDet/blob/master/README/detection_analysis.png)
   ![alt text](https://github.com/BichenWuUCB/squeezeDet/blob/master/README/graph.png)
