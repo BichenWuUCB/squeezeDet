@@ -75,7 +75,7 @@ class ModelSkeleton:
     self.mc = mc
     # a scalar tensor in range (0, 1]. Usually set to 0.5 in training phase and
     # 1.0 in evaluation phase
-    self.keep_prob = 1.0
+    self.keep_prob = 0.5 if mc.IS_TRAINING else 1.0
 
     # image batch input
     self.ph_image_input = tf.placeholder(
