@@ -15,6 +15,7 @@ import time
 import numpy as np
 from six.moves import xrange
 import tensorflow as tf
+import threading
 
 from config import *
 from dataset import pascal_voc, kitti
@@ -158,23 +159,7 @@ def train():
     print ('Model statistics saved to {}.'.format(
       os.path.join(FLAGS.train_dir, 'model_metrics.txt')))
 
-    saver = tf.train.Saver(tf.global_variables())
-    summary_op = tf.summary.merge_all()
-    init = tf.global_variables_initializer()
-
-    ckpt = tf.train.get_checkpoint_state(FLAGS.train_dir)
-    if ckpt and ckpt.model_checkpoint_path:
-        saver.restore(sess, ckpt.model_checkpoint_path)
-
-    sess = tf.Session(config=tf.ConfigProto(allow_soft_placement=True))
-    sess.run(init)
-    tf.train.start_queue_runners(sess=sess)
-
-    summary_writer = tf.summary.FileWriter(FLAGS.train_dir, sess.graph)
-
-    for step in xrange(FLAGS.max_steps):
-      start_time = time.time()
-
+    def _load_data(load_to_placeholder=True):
       # read batch input
       image_per_batch, label_per_batch, box_delta_per_batch, aidx_per_batch, \
           bbox_per_batch = imdb.read_batch()
@@ -200,36 +185,103 @@ def train():
             num_discarded_labels += 1
 
       if mc.DEBUG_MODE:
-        print ('Warning: Discarded {}/({}) labels that are assigned to the same'
+        print ('Warning: Discarded {}/({}) labels that are assigned to the same '
                'anchor'.format(num_discarded_labels, num_labels))
 
+      if load_to_placeholder:
+        image_input = model.ph_image_input
+        input_mask = model.ph_input_mask
+        box_delta_input = model.ph_box_delta_input
+        box_input = model.ph_box_input
+        labels = model.ph_labels
+      else:
+        image_input = model.image_input
+        input_mask = model.input_mask
+        box_delta_input = model.box_delta_input
+        box_input = model.box_input
+        labels = model.labels
+
       feed_dict = {
-          model.image_input: image_per_batch,
-          model.input_mask: np.reshape(
+          image_input: image_per_batch,
+          input_mask: np.reshape(
               sparse_to_dense(
                   mask_indices, [mc.BATCH_SIZE, mc.ANCHORS],
                   [1.0]*len(mask_indices)),
               [mc.BATCH_SIZE, mc.ANCHORS, 1]),
-          model.box_delta_input: sparse_to_dense(
+          box_delta_input: sparse_to_dense(
               bbox_indices, [mc.BATCH_SIZE, mc.ANCHORS, 4],
               box_delta_values),
-          model.box_input: sparse_to_dense(
+          box_input: sparse_to_dense(
               bbox_indices, [mc.BATCH_SIZE, mc.ANCHORS, 4],
               box_values),
-          model.labels: sparse_to_dense(
+          labels: sparse_to_dense(
               label_indices,
               [mc.BATCH_SIZE, mc.ANCHORS, mc.CLASSES],
               [1.0]*len(label_indices)),
       }
 
+      return feed_dict, image_per_batch, label_per_batch, bbox_per_batch
+
+    def _enqueue(sess, coord):
+      try:
+        while not coord.should_stop():
+          feed_dict, _, _, _ = _load_data()
+          sess.run(model.enqueue_op, feed_dict=feed_dict)
+          if mc.DEBUG_MODE:
+            print ("added to the queue")
+        if mc.DEBUG_MODE:
+          print ("Finished enqueue")
+      except Exception, e:
+        coord.request_stop(e)
+
+    sess = tf.Session(config=tf.ConfigProto(allow_soft_placement=True))
+
+    saver = tf.train.Saver(tf.global_variables())
+    summary_op = tf.summary.merge_all()
+
+    ckpt = tf.train.get_checkpoint_state(FLAGS.train_dir)
+    if ckpt and ckpt.model_checkpoint_path:
+        saver.restore(sess, ckpt.model_checkpoint_path)
+
+    summary_writer = tf.summary.FileWriter(FLAGS.train_dir, sess.graph)
+
+    init = tf.global_variables_initializer()
+    sess.run(init)
+
+    coord = tf.train.Coordinator()
+
+    if mc.NUM_THREAD > 0:
+      enq_threads = []
+      for _ in range(mc.NUM_THREAD):
+        enq_thread = threading.Thread(target=_enqueue, args=[sess, coord])
+        # enq_thread.isDaemon()
+        enq_thread.start()
+        enq_threads.append(enq_thread)
+
+    threads = tf.train.start_queue_runners(coord=coord, sess=sess)
+    run_options = tf.RunOptions(timeout_in_ms=60000)
+
+    # try: 
+    for step in xrange(FLAGS.max_steps):
+      if coord.should_stop():
+        sess.run(model.FIFOQueue.close(cancel_pending_enqueues=True))
+        coord.request_stop()
+        coord.join(threads)
+        break
+
+      start_time = time.time()
+
       if step % FLAGS.summary_step == 0:
+        feed_dict, image_per_batch, label_per_batch, bbox_per_batch = \
+            _load_data(load_to_placeholder=False)
         op_list = [
             model.train_op, model.loss, summary_op, model.det_boxes,
             model.det_probs, model.det_class, model.conf_loss,
             model.bbox_loss, model.class_loss
         ]
-        _, loss_value, summary_str, det_boxes, det_probs, det_class, conf_loss, \
-            bbox_loss, class_loss = sess.run(op_list, feed_dict=feed_dict)
+        _, loss_value, summary_str, det_boxes, det_probs, det_class, \
+            conf_loss, bbox_loss, class_loss = sess.run(
+                op_list, feed_dict=feed_dict)
 
         _viz_prediction_result(
             model, image_per_batch, bbox_per_batch, label_per_batch, det_boxes,
@@ -238,24 +290,22 @@ def train():
         viz_summary = sess.run(
             model.viz_op, feed_dict={model.image_to_show: image_per_batch})
 
-        num_discarded_labels_op = tf.summary.scalar(
-            'counter/num_discarded_labels', num_discarded_labels)
-        num_labels_op = tf.summary.scalar(
-            'counter/num_labels', num_labels)
-
-        counter_summary_str = sess.run([num_discarded_labels_op, num_labels_op])
-
         summary_writer.add_summary(summary_str, step)
         summary_writer.add_summary(viz_summary, step)
-        for sum_str in counter_summary_str:
-          summary_writer.add_summary(sum_str, step)
+        summary_writer.flush()
 
         print ('conf_loss: {}, bbox_loss: {}, class_loss: {}'.
             format(conf_loss, bbox_loss, class_loss))
       else:
-        _, loss_value, conf_loss, bbox_loss, class_loss = sess.run(
-            [model.train_op, model.loss, model.conf_loss, model.bbox_loss,
-             model.class_loss], feed_dict=feed_dict)
+        if mc.NUM_THREAD > 0:
+          _, loss_value, conf_loss, bbox_loss, class_loss = sess.run(
+              [model.train_op, model.loss, model.conf_loss, model.bbox_loss,
+               model.class_loss], options=run_options)
+        else:
+          feed_dict, _, _, _ = _load_data(load_to_placeholder=False)
+          _, loss_value, conf_loss, bbox_loss, class_loss = sess.run(
+              [model.train_op, model.loss, model.conf_loss, model.bbox_loss,
+               model.class_loss], feed_dict=feed_dict)
 
       duration = time.time() - start_time
 
@@ -277,6 +327,11 @@ def train():
       if step % FLAGS.checkpoint_step == 0 or (step + 1) == FLAGS.max_steps:
         checkpoint_path = os.path.join(FLAGS.train_dir, 'model.ckpt')
         saver.save(sess, checkpoint_path, global_step=step)
+    # except Exception, e:
+    #   coord.request_stop(e)
+    # finally:
+    #   coord.request_stop()
+    #   coord.join(threads)
 
 def main(argv=None):  # pylint: disable=unused-argument
   if tf.gfile.Exists(FLAGS.train_dir):

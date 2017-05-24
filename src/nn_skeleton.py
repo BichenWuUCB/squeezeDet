@@ -78,31 +78,50 @@ class ModelSkeleton:
     self.keep_prob = 1.0
 
     # image batch input
-    self.image_input = tf.placeholder(
+    self.ph_image_input = tf.placeholder(
         tf.float32, [mc.BATCH_SIZE, mc.IMAGE_HEIGHT, mc.IMAGE_WIDTH, 3],
         name='image_input'
     )
-    # a scalar tensor in range (0, 1]. Usually set to 0.5 in training phase and
-    # 1.0 in evaluation phase
-    # self.keep_prob = tf.placeholder(tf.float32, name='keep_prob')
     # A tensor where an element is 1 if the corresponding box is "responsible"
     # for detection an object and 0 otherwise.
-    self.input_mask = tf.placeholder(
+    self.ph_input_mask = tf.placeholder(
         tf.float32, [mc.BATCH_SIZE, mc.ANCHORS, 1], name='box_mask')
     # Tensor used to represent bounding box deltas.
-    self.box_delta_input = tf.placeholder(
+    self.ph_box_delta_input = tf.placeholder(
         tf.float32, [mc.BATCH_SIZE, mc.ANCHORS, 4], name='box_delta_input')
     # Tensor used to represent bounding box coordinates.
-    self.box_input = tf.placeholder(
+    self.ph_box_input = tf.placeholder(
         tf.float32, [mc.BATCH_SIZE, mc.ANCHORS, 4], name='box_input')
     # Tensor used to represent labels
-    self.labels = tf.placeholder(
+    self.ph_labels = tf.placeholder(
         tf.float32, [mc.BATCH_SIZE, mc.ANCHORS, mc.CLASSES], name='labels')
-    # Tensor representing the IOU between predicted bbox and gt bbox
+
+    # IOU between predicted anchors with ground-truth boxes
     self.ious = tf.Variable(
-        initial_value=np.zeros((mc.BATCH_SIZE, mc.ANCHORS)), trainable=False,
-        name='iou', dtype=tf.float32
+      initial_value=np.zeros((mc.BATCH_SIZE, mc.ANCHORS)), trainable=False,
+      name='iou', dtype=tf.float32
     )
+
+    self.FIFOQueue = tf.FIFOQueue(
+        capacity=mc.QUEUE_CAPACITY,
+        dtypes=[tf.float32, tf.float32, tf.float32, 
+                tf.float32, tf.float32],
+        shapes=[[mc.IMAGE_HEIGHT, mc.IMAGE_WIDTH, 3],
+                [mc.ANCHORS, 1],
+                [mc.ANCHORS, 4],
+                [mc.ANCHORS, 4],
+                [mc.ANCHORS, mc.CLASSES]],
+    )
+
+    self.enqueue_op = self.FIFOQueue.enqueue_many(
+        [self.ph_image_input, self.ph_input_mask,
+         self.ph_box_delta_input, self.ph_box_input, self.ph_labels]
+    )
+
+    self.image_input, self.input_mask, self.box_delta_input, \
+        self.box_input, self.labels = tf.train.batch(
+            self.FIFOQueue.dequeue(), batch_size=mc.BATCH_SIZE,
+            capacity=mc.QUEUE_CAPACITY) 
 
     # model parameters
     self.model_params = []
