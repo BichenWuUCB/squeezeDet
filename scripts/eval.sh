@@ -2,7 +2,8 @@
 
 export GPUID=0
 export NET="squeezeDet"
-export TRAIN_DIR="/tmp/bichen/logs/SqueezeDet/"
+export EVAL_DIR="/tmp/bichen/logs/SqueezeDet/"
+export IMAGE_SET="val"
 
 if [ $# -eq 0 ]
 then
@@ -12,7 +13,8 @@ then
   echo "-h, --help                show brief help"
   echo "-net                      (squeezeDet|squeezeDet+|vgg16|resnet50)"
   echo "-gpu                      gpu id"
-  echo "-train_dir                directory for training logs"
+  echo "-eval_dir                 directory to save logs"
+  echo "-image_set                (train|val)"
   exit 0
 fi
 
@@ -25,7 +27,8 @@ while test $# -gt 0; do
       echo "-h, --help                show brief help"
       echo "-net                      (squeezeDet|squeezeDet+|vgg16|resnet50)"
       echo "-gpu                      gpu id"
-      echo "-train_dir                directory for training logs"
+      echo "-eval_dir                 directory to save logs"
+      echo "-image_set                (train|val)"
       exit 0
       ;;
     -net)
@@ -38,8 +41,13 @@ while test $# -gt 0; do
       shift
       shift
       ;;
-    -train_dir)
-      export TRAIN_DIR="$2"
+    -eval_dir)
+      export EVAL_DIR="$2"
+      shift
+      shift
+      ;;
+    -image_set)
+      export IMAGE_SET="$2"
       shift
       shift
       ;;
@@ -49,33 +57,14 @@ while test $# -gt 0; do
   esac
 done
 
-case "$NET" in 
-  "squeezeDet")
-    export PRETRAINED_MODEL_PATH="./data/SqueezeNet/squeezenet_v1.1.pkl"
-    ;;
-  "squeezeDet+")
-    export PRETRAINED_MODEL_PATH="./data/SqueezeNet/squeezenet_v1.0_SR_0.750.pkl"
-    ;;
-  "resnet50")
-    export PRETRAINED_MODEL_PATH="./data/ResNet/ResNet-50-weights.pkl"
-    ;;
-  "vgg16")
-    export PRETRAINED_MODEL_PATH="./data/VGG16/VGG_ILSVRC_16_layers_weights.pkl"
-    ;;
-  *)
-    echo "net architecture not supported."
-    exit 0
-    ;;
-esac
-
-
-python ./src/train.py \
+# =========================================================================== #
+# command for squeezeDet:
+# =========================================================================== #
+python ./src/eval.py \
   --dataset=KITTI \
-  --pretrained_model_path=$PRETRAINED_MODEL_PATH \
   --data_path=./data/KITTI \
-  --image_set=train \
-  --train_dir="$TRAIN_DIR/train" \
+  --image_set=$IMAGE_SET \
+  --eval_dir="$EVAL_DIR/$IMAGE_SET" \
+  --checkpoint_path="$EVAL_DIR/train" \
   --net=$NET \
-  --summary_step=100 \
-  --checkpoint_step=500 \
   --gpu=$GPUID
