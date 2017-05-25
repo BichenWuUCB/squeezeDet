@@ -88,7 +88,7 @@ def video_demo():
         # Detect
         det_boxes, det_probs, det_class = sess.run(
             [model.det_boxes, model.det_probs, model.det_class],
-            feed_dict={model.image_input:[im_input], model.keep_prob: 1.0})
+            feed_dict={model.image_input:[im_input]})
 
         t_detect = time.time()
         times['detect']= t_detect - t_reshape
