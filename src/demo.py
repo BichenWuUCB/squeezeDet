@@ -172,7 +172,7 @@ def image_demo():
         # Detect
         det_boxes, det_probs, det_class = sess.run(
             [model.det_boxes, model.det_probs, model.det_class],
-            feed_dict={model.image_input:[input_image], model.keep_prob: 1.0})
+            feed_dict={model.image_input:[input_image]})
 
         # Filter
         final_boxes, final_probs, final_class = model.filter_prediction(
