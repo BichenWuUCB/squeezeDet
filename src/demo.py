@@ -37,6 +37,8 @@ tf.app.flags.DEFINE_string(
     """./data/00000*.png.""")
 tf.app.flags.DEFINE_string(
     'out_dir', './data/out/', """Directory to dump output image or video.""")
+tf.app.flags.DEFINE_string(
+    'demo_net', 'squeezeDet', """Neural net architecture.""")
 
 
 def video_demo():
@@ -53,13 +55,22 @@ def video_demo():
   # out = VideoWriter(out_file_name, frameSize=(1242, 375))
   # out.open()
 
+  assert FLAGS.demo_net == 'squeezeDet' or FLAGS.demo_net == 'squeezeDet+', \
+      'Selected nueral net architecture not supported: {}'.format(FLAGS.demo_net)
+
   with tf.Graph().as_default():
     # Load model
-    mc = kitti_squeezeDet_config()
-    mc.BATCH_SIZE = 1
-    # model parameters will be restored from checkpoint
-    mc.LOAD_PRETRAINED_MODEL = False
-    model = SqueezeDet(mc, FLAGS.gpu)
+    if FLAGS.demo_net == 'squeezeDet':
+      mc = kitti_squeezeDet_config()
+      mc.BATCH_SIZE = 1
+      # model parameters will be restored from checkpoint
+      mc.LOAD_PRETRAINED_MODEL = False
+      model = SqueezeDet(mc, FLAGS.gpu)
+    elif FLAGS.demo_net == 'squeezeDet+':
+      mc = kitti_squeezeDetPlus_config()
+      mc.BATCH_SIZE = 1
+      mc.LOAD_PRETRAINED_MODEL = False
+      model = SqueezeDetPlus(mc, FLAGS.gpu)
 
     saver = tf.train.Saver(model.model_params)
 
@@ -150,13 +161,22 @@ def video_demo():
 def image_demo():
   """Detect image."""
 
+  assert FLAGS.demo_net == 'squeezeDet' or FLAGS.demo_net == 'squeezeDet+', \
+      'Selected nueral net architecture not supported: {}'.format(FLAGS.demo_net)
+
   with tf.Graph().as_default():
     # Load model
-    mc = kitti_squeezeDet_config()
-    mc.BATCH_SIZE = 1
-    # model parameters will be restored from checkpoint
-    mc.LOAD_PRETRAINED_MODEL = False
-    model = SqueezeDet(mc, FLAGS.gpu)
+    if FLAGS.demo_net == 'squeezeDet':
+      mc = kitti_squeezeDet_config()
+      mc.BATCH_SIZE = 1
+      # model parameters will be restored from checkpoint
+      mc.LOAD_PRETRAINED_MODEL = False
+      model = SqueezeDet(mc, FLAGS.gpu)
+    elif FLAGS.demo_net == 'squeezeDet+':
+      mc = kitti_squeezeDetPlus_config()
+      mc.BATCH_SIZE = 1
+      mc.LOAD_PRETRAINED_MODEL = False
+      model = SqueezeDetPlus(mc, FLAGS.gpu)
 
     saver = tf.train.Saver(model.model_params)
 

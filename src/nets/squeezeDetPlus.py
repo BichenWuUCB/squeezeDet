@@ -50,7 +50,7 @@ class SqueezeDetPlus(ModelSkeleton):
     fire4 = self._fire_layer(
         'fire4', fire3, s1x1=192, e1x1=128, e3x3=128, freeze=False)
     pool4 = self._pooling_layer(
-        'pool4', fire4, size=3, stride=2, padding='SAME')
+        'pool4', fire4, size=3, stride=2, padding='VALID')
 
     fire5 = self._fire_layer(
         'fire5', pool4, s1x1=192, e1x1=128, e3x3=128, freeze=False)
@@ -61,7 +61,7 @@ class SqueezeDetPlus(ModelSkeleton):
     fire8 = self._fire_layer(
         'fire8', fire7, s1x1=384, e1x1=256, e3x3=256, freeze=False)
     pool8 = self._pooling_layer(
-        'pool8', fire8, size=3, stride=2, padding='SAME')
+        'pool8', fire8, size=3, stride=2, padding='VALID')
 
     fire9 = self._fire_layer(
         'fire9', pool8, s1x1=384, e1x1=256, e3x3=256, freeze=False)
