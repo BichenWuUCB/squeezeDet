@@ -55,7 +55,7 @@ def video_demo():
   # out = VideoWriter(out_file_name, frameSize=(1242, 375))
   # out.open()
 
-  assert FLAGS.demo_net == 'squeezeDet' or FLAGS.demo_net == 'squeezeDet+', \
+  assert FLAGS.demo_net == 'squeezeDet' or FLAGS.demo_net == 'squeezeDet+' or FLAGS.demo_net == 'resnet50' or FLAGS.demo_net == 'vgg16', \
       'Selected nueral net architecture not supported: {}'.format(FLAGS.demo_net)
 
   with tf.Graph().as_default():
@@ -71,6 +71,16 @@ def video_demo():
       mc.BATCH_SIZE = 1
       mc.LOAD_PRETRAINED_MODEL = False
       model = SqueezeDetPlus(mc, FLAGS.gpu)
+    elif FLAGS.demo_net == 'resnet50':
+      mc = kitti_res50_config()
+      mc.BATCH_SIZE = 1
+      mc.LOAD_PRETRAINED_MODEL = False
+      model = ResNet50ConvDet(mc, FLAGS.gpu)
+    elif FLAGS.demo_net == 'vgg16':
+      mc = kitti_vgg16_config()
+      mc.BATCH_SIZE = 1
+      mc.LOAD_PRETRAINED_MODEL = False
+      model = VGG16ConvDet(mc, FLAGS.gpu)
 
     saver = tf.train.Saver(model.model_params)
 
@@ -161,7 +171,7 @@ def video_demo():
 def image_demo():
   """Detect image."""
 
-  assert FLAGS.demo_net == 'squeezeDet' or FLAGS.demo_net == 'squeezeDet+', \
+  assert FLAGS.demo_net == 'squeezeDet' or FLAGS.demo_net == 'squeezeDet+' or FLAGS.demo_net == 'resnet50' or FLAGS.demo_net == 'vgg16', \
       'Selected nueral net architecture not supported: {}'.format(FLAGS.demo_net)
 
   with tf.Graph().as_default():
@@ -177,6 +187,16 @@ def image_demo():
       mc.BATCH_SIZE = 1
       mc.LOAD_PRETRAINED_MODEL = False
       model = SqueezeDetPlus(mc, FLAGS.gpu)
+    elif FLAGS.demo_net == 'resnet50':
+      mc = kitti_res50_config()
+      mc.BATCH_SIZE = 1
+      mc.LOAD_PRETRAINED_MODEL = False
+      model = ResNet50ConvDet(mc, FLAGS.gpu)
+    elif FLAGS.demo_net == 'vgg16':
+      mc = kitti_vgg16_config()
+      mc.BATCH_SIZE = 1
+      mc.LOAD_PRETRAINED_MODEL = False
+      model = VGG16ConvDet(mc, FLAGS.gpu)
 
     saver = tf.train.Saver(model.model_params)
 
