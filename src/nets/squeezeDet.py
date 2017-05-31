@@ -103,4 +103,13 @@ class SqueezeDet(ModelSkeleton):
         layer_name+'/expand3x3', sq1x1, filters=e3x3, size=3, stride=1,
         padding='SAME', stddev=stddev, freeze=freeze)
 
-    return tf.concat([ex1x1, ex3x3], 3, name=layer_name+'/concat')
+    values = [ex1x1, ex3x3]
+    axis = 3
+    name = layer_name+'/concat'
+
+    try:
+      # calling the new concat, if available
+      return tf.concat(axis, values, name=name)
+    except TypeError:
+      # fallback to the old concat
+      return tf.concat(values, axis, name=name)
