@@ -148,3 +148,14 @@ The following instructions are written for Linux-based distros.
   ![alt text](https://github.com/BichenWuUCB/squeezeDet/blob/master/README/detection_analysis.png)
   ![alt text](https://github.com/BichenWuUCB/squeezeDet/blob/master/README/graph.png)
   ![alt text](https://github.com/BichenWuUCB/squeezeDet/blob/master/README/det_img.png)
+
+
+## Customizing for your own dataset
+### Computing optimal anchors
+The shapes of the anchors in `src/config/kitti_<model>_config.py` are optimized for the KITTI dataset.
+To customize them for your own dataset, you can use `scripts/kmeans_anchors.py`:
+```Shell
+cd $SQDT_ROOT/
+pip install -r requirements_tools.txt
+python scripts/kmeans_anchors.py
+```
