@@ -34,17 +34,17 @@ def main():
                         default=os.path.abspath(os.path.join(os.path.dirname(script_path),
                                                              '../data/KITTI')),
                         help='Root directory of the dataset')
-    parser.add_argument('--input-size', default='320x427',
+    parser.add_argument('--geometry', default='320x427',
                         help='Geometry of the image input for the neural net, in the form of a' +
                              ' <width>x<height> string')
     parser.add_argument('--k', default=9, type=int,
                         help='Number of anchors')
+    parser.add_argument('--kmeans-max-iter', default=1000, type=int,
+                        help='Maximum number of iterations of the k-means algorithm')
     args = parser.parse_args()
-    input_w, input_h = (int(x) for x in args.input_size.split('x'))
+    input_w, input_h = (int(x) for x in args.geometry.split('x'))
     metadata = get_dataset_metadata(args.dataset_root, input_w, input_h, args.jobs)
-    print_anchors(args.k, metadata)
-
-
+    print_anchors(args.k, metadata, max_iter=args.kmeans_max_iter)
 
 
 def get_dataset_metadata(dataset_root, input_w, input_h, max_jobs):
@@ -71,11 +71,13 @@ def get_dataset_metadata(dataset_root, input_w, input_h, max_jobs):
                 nonlocals['entries_done_pbar'].update(1)
                 fr = future.result()
                 if fr is not None:
-                    nonlocals['metadata'][entry] = fr
+                    local_entry, value = fr     # do NOT use the entry variable from the scope!
+                    nonlocals['metadata'][local_entry] = value
 
             future = pool.submit(get_entry_metadata, dataset_root, entry, input_w, input_h)
             future.add_done_callback(entry_done)      # FIXME: doesn't work if chained directly to submit(). bug in futures? reproduce and submit report.
     nonlocals['entries_done_pbar'].close()
+    assert len(nonlocals['metadata'].values()) >= 0.9 * len(dataset_entries)    # catch if entry_done doesn't update the dict correctly
     return nonlocals['metadata']
 
 
@@ -90,7 +92,6 @@ def get_entry_metadata(dataset_root, entry, input_w, input_h):
         print 'Unable to process entry', entry, '(ignoring)'
         return None
 
-    # print '>>> ', entry, ' out: ', out
     img_w, img_h = [int(x) for x in out.split('x')]
     scaleX = float(input_w) / img_w
     scaleY = float(input_h) / img_h
@@ -100,23 +101,26 @@ def get_entry_metadata(dataset_root, entry, input_w, input_h):
         for line in f.read().splitlines():
             if line:
                 # n02676566 0.0 0 0 21 1 376 547 -1 -1 -1 -1 -1 -1 -1
-                xmin, ymin, xmax, ymax = [int(x) for x in line.split()[4:8]]
+                xmin, ymin, xmax, ymax = [float(x) for x in line.split()[4:8]]
                 w = xmax - xmin
                 h = ymax - ymin
                 bbox_sizes.append((w * scaleX, h * scaleY))
-    return {
+
+    return (entry, {
         'size': (img_w, img_h),
         'bbox_sizes': bbox_sizes
-    }
+    })
 
 
-def print_anchors(k, metadata):
+def print_anchors(k, metadata, max_iter):
     bbox_sizes = np.array(flatten([m['bbox_sizes'] for m in metadata.values()]))
     plt.scatter(bbox_sizes[:, 0], bbox_sizes[:, 1])
     plt.xlabel('width')
     plt.ylabel('height')
 
-    kmeans = KMeans(n_clusters=k, random_state=0).fit(bbox_sizes)
+    ARBITRARY_SEED = 13
+
+    kmeans = KMeans(n_clusters=k, random_state=ARBITRARY_SEED, max_iter=max_iter).fit(bbox_sizes)
     centroids = kmeans.cluster_centers_
     print_nicely(centroids)
 
@@ -137,9 +141,9 @@ def print_nicely(centroids):
         if idx != len(centroids_list) - 1:
             comma = ','
             space = ' '
-        if idx % 3 == 2:
-            newline = '\n'
-            space = ''
+            if idx % 3 == 2:
+                newline = '\n'
+                space = ''
         out += comma + space + newline
     out += ']'
     print out
