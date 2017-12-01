@@ -10,7 +10,6 @@ import os
 import sys
 
 import joblib
-from utils import util
 from easydict import EasyDict as edict
 import numpy as np
 import tensorflow as tf
