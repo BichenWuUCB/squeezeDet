@@ -177,7 +177,7 @@ class imdb(object):
           im = distorted_im
 
         # Flip image with 50% probability
-        if np.random.randint(2) > 0.5:
+        if np.random.randint(2) > mc.FLIP_PROBABILITY:
           im = im[:, ::-1, :]
           gt_bbox[:, 0] = orig_w - 1 - gt_bbox[:, 0]
 

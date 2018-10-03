@@ -122,6 +122,9 @@ def base_model_config(dataset='PASCAL_VOC'):
   # The range to randomly shift the image height
   cfg.DRIFT_Y = 0
 
+  # The probability of horizontal flip
+  cfg.FLIP_PROBABILITY = 0
+
   # Whether to exclude images harder than hard-category. Only useful for KITTI
   # dataset.
   cfg.EXCLUDE_HARD_EXAMPLES = True
