@@ -34,6 +34,7 @@ def kitti_model_config():
   mc.DATA_AUGMENTATION     = True
   mc.DRIFT_X               = 150
   mc.DRIFT_Y               = 100
+  mc.FLIP_PROBABILITY      = 0.5
   mc.ANCHOR_BOX            = set_anchors(mc)
   mc.ANCHORS               = len(mc.ANCHOR_BOX)
   mc.ANCHOR_PER_GRID       = 9

@@ -34,6 +34,7 @@ def kitti_vgg16_config():
   mc.DATA_AUGMENTATION     = True
   mc.DRIFT_X               = 150
   mc.DRIFT_Y               = 100
+  mc.FLIP_PROBABILITY      = 0.5
   mc.EXCLUDE_HARD_EXAMPLES = False
 
   mc.ANCHOR_BOX            = set_anchors(mc)
